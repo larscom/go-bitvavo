@@ -12,17 +12,17 @@ func main() {
 		log.Println("Starting without .env file")
 	}
 
-	ws, err := bitvavo.NewWebSocket(bitvavo.WithDebug(true))
+	ws, err := bitvavo.NewWebSocket(bitvavo.WithDebug(false))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	tickerchn, err := ws.Ticker().Subscribe("ETH-EUR")
+	chn, err := ws.Candles().Subscribe("ETH-EUR", "5m")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for ticker := range tickerchn {
-		log.Println("ticker", ticker)
+	for value := range chn {
+		log.Println("value", value)
 	}
 }

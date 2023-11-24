@@ -134,7 +134,7 @@ func (c *candleWsHandler) UnsubscribeAll() error {
 
 func (c *candleWsHandler) handleMessage(bytes []byte) {
 	var candleEvent *CandlesEvent
-	if err := json.Unmarshal(bytes, candleEvent); err != nil {
+	if err := json.Unmarshal(bytes, &candleEvent); err != nil {
 		log.Logger().Error("Couldn't unmarshal message into CandlesEvent", "message", string(bytes))
 	} else {
 		var (
