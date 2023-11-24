@@ -33,20 +33,21 @@ type Ticker struct {
 }
 
 func (t *TickerEvent) UnmarshalJSON(data []byte) error {
-	// {"event":"ticker","market":"ETH-EUR","bestAsk":"1787.5","bestAskSize":"0.69109773","lastPrice":"1787.5"}
-	var event map[string]string
+	// {"tickerEvent":"ticker","market":"ETH-EUR","bestAsk":"1787.5","bestAskSize":"0.69109773","lastPrice":"1787.5"}
+	var tickerEvent map[string]string
 
-	err := json.Unmarshal(data, &event)
+	err := json.Unmarshal(data, &tickerEvent)
 	if err != nil {
 		return err
 	}
+
 	var (
-		market      = event["market"]
-		bestBid     = event["bestBid"]
-		bestBidSize = event["bestBidSize"]
-		bestAsk     = event["bestAsk"]
-		bestAskSize = event["bestAskSize"]
-		lastPrice   = event["lastPrice"]
+		market      = tickerEvent["market"]
+		bestBid     = tickerEvent["bestBid"]
+		bestBidSize = tickerEvent["bestBidSize"]
+		bestAsk     = tickerEvent["bestAsk"]
+		bestAskSize = tickerEvent["bestAskSize"]
+		lastPrice   = tickerEvent["lastPrice"]
 	)
 
 	t.Market = market

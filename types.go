@@ -83,14 +83,3 @@ type Channel struct {
 	Intervals []string `json:"interval,omitempty"`
 	Markets   []string `json:"markets,omitempty"`
 }
-
-type WsHandler[T any] interface {
-	// Subscribe to market
-	Subscribe(market string) (<-chan T, error)
-
-	// Unsubscribe from market
-	Unsubscribe(market string) error
-
-	// Unsubscribe from every market
-	UnsubscribeAll() error
-}
