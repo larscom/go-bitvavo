@@ -323,7 +323,11 @@ func (t *accountWsHandler) reconnect() {
 
 	for sub := range t.subs.IterBuffered() {
 		market := sub.Key
-		t.Subscribe(market)
+		if err := t.withAuth(func() {
+			t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameAccount, market)
+		}); err != nil {
+			log.Logger().Error("Failed to reconnect the account websocket", "market", market)
+		}
 	}
 }
 
