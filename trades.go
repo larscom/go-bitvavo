@@ -35,6 +35,7 @@ type Trade struct {
 
 func (t *TradesEvent) UnmarshalJSON(bytes []byte) error {
 	var tradesEvent map[string]any
+
 	err := json.Unmarshal(bytes, &tradesEvent)
 	if err != nil {
 		return err

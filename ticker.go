@@ -33,7 +33,6 @@ type Ticker struct {
 }
 
 func (t *TickerEvent) UnmarshalJSON(data []byte) error {
-	// {"tickerEvent":"ticker","market":"ETH-EUR","bestAsk":"1787.5","bestAskSize":"0.69109773","lastPrice":"1787.5"}
 	var tickerEvent map[string]string
 
 	err := json.Unmarshal(data, &tickerEvent)

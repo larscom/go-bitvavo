@@ -51,8 +51,8 @@ type Ticker24h struct {
 }
 
 func (t *Ticker24hEvent) UnmarshalJSON(bytes []byte) error {
-	// {"event":"ticker24h","ticker24hEvent":[{"market":"ETH-EUR","startTimestamp":1700425282396,"timestamp":1700511682396,"open":"1815.1","openTimestamp":1700425292390,"high":"1890.2","low":"1813.1","last":"1863.8","closeTimestamp":1700511637320,"bid":"1862.7","bidSize":"1.719","ask":"1864.3","askSize":"7.9779","volume":"3629.1566404","volumeQuote":"6720833.300920673"}]}
 	var ticker24hEvent map[string]any
+
 	err := json.Unmarshal(bytes, &ticker24hEvent)
 	if err != nil {
 		return err
@@ -61,6 +61,7 @@ func (t *Ticker24hEvent) UnmarshalJSON(bytes []byte) error {
 	if len(data) != 1 {
 		return fmt.Errorf("unexpected length: %d, expected: 1", len(ticker24hEvent))
 	}
+
 	var (
 		ticker24h = data[0].(map[string]any)
 

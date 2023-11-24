@@ -33,7 +33,6 @@ type Candle struct {
 }
 
 func (c *Candle) UnmarshalJSON(data []byte) error {
-	// [[1700254500000,"1785.3","1786","1783.5","1783.9","14.37534076"]]
 	var event [][]any
 
 	err := json.Unmarshal(data, &event)
@@ -44,7 +43,6 @@ func (c *Candle) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("unexpected length: %d, expected: 1", len(event))
 	}
 
-	// [1700254500000,"1785.3","1786","1783.5","1783.9","14.37534076"]
 	candle := event[0]
 
 	c.Timestamp = int64(candle[0].(float64))
