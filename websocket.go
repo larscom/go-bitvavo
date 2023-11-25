@@ -186,7 +186,7 @@ func (ws *webSocket) writeLoop() {
 }
 
 func (ws *webSocket) readLoop() {
-	log.Logger().Info("Connected...")
+	ws.logDebug("Connected...")
 
 	for {
 		_, bytes, err := ws.conn.ReadMessage()
@@ -200,18 +200,18 @@ func (ws *webSocket) readLoop() {
 
 func (ws *webSocket) reconnect() {
 	if !ws.autoReconnect {
-		log.Logger().Info("Auto reconnect disabled, not reconnecting...")
+		ws.logDebug("Auto reconnect disabled, not reconnecting...")
 		return
 	}
 
-	log.Logger().Info("Reconnecting...")
+	ws.logDebug("Reconnecting...")
 
 	conn, err := newConn()
 	if err != nil {
 		defer ws.reconnect()
 
 		ws.reconnectCount += 1
-		log.Logger().Info("Reconnect failed, retrying in 1 second", "count", ws.reconnectCount)
+		log.Logger().Error("Reconnect failed, retrying in 1 second", "count", ws.reconnectCount)
 		time.Sleep(time.Second)
 		return
 	}
@@ -253,9 +253,7 @@ func newWebSocketMessage(action Action, channelName ChannelName, market string) 
 }
 
 func (ws *webSocket) handleMessage(bytes []byte) {
-	if ws.debug {
-		log.Logger().Debug("Handling incoming message", "message", string(bytes))
-	}
+	ws.logDebug("Handling incoming message", "message", string(bytes))
 
 	var baseEvent *BaseEvent
 	if err := json.Unmarshal(bytes, &baseEvent); err != nil {
@@ -271,9 +269,7 @@ func (ws *webSocket) handleMessage(bytes []byte) {
 }
 
 func (ws *webSocket) handlError(err *WebSocketErr) {
-	if ws.debug {
-		log.Logger().Debug("Handling incoming error", "err", err)
-	}
+	ws.logDebug("Handling incoming error", "err", err)
 
 	switch err.Action {
 	case ActionAuthenticate.Value:
@@ -284,9 +280,7 @@ func (ws *webSocket) handlError(err *WebSocketErr) {
 }
 
 func (ws *webSocket) handleEvent(e *BaseEvent, bytes []byte) {
-	if ws.debug {
-		log.Logger().Debug("Handling incoming message", "event", e.Event, "message", string(bytes))
-	}
+	ws.logDebug("Handling incoming message", "event", e.Event, "message", string(bytes))
 
 	switch e.Event {
 	// public
@@ -319,84 +313,72 @@ func (ws *webSocket) handleEvent(e *BaseEvent, bytes []byte) {
 }
 
 func (ws *webSocket) handleSubscribedEvent(bytes []byte) {
-	if ws.debug {
-		log.Logger().Debug("Received subscribed event")
-	}
+	ws.logDebug("Received subscribed event")
 }
 
 func (ws *webSocket) handleUnsubscribedEvent(bytes []byte) {
-	if ws.debug {
-		log.Logger().Debug("Received unsubscribed event")
-	}
+	ws.logDebug("Received unsubscribed event")
 }
 
 func (ws *webSocket) handleCandleEvent(bytes []byte) {
-	if ws.debug {
-		log.Logger().Debug("Received candles event")
-	}
+	ws.logDebug("Received candles event")
+
 	if ws.hasCandleWsHandler() {
 		ws.candleWsHandler.handleMessage(bytes)
 	}
 }
 
 func (ws *webSocket) handleTickerEvent(bytes []byte) {
-	if ws.debug {
-		log.Logger().Debug("Received ticker event")
-	}
+	ws.logDebug("Received ticker event")
+
 	if ws.hasTickerWsHandler() {
 		ws.tickerWsHandler.handleMessage(bytes)
 	}
 }
 
 func (ws *webSocket) handleTicker24hEvent(bytes []byte) {
-	if ws.debug {
-		log.Logger().Debug("Received ticker24h event")
-	}
+	ws.logDebug("Received ticker24h event")
+
 	if ws.hasTicker24hWsHandler() {
 		ws.ticker24hWsHandler.handleMessage(bytes)
 	}
 }
 
 func (ws *webSocket) handleTradesEvent(bytes []byte) {
-	if ws.debug {
-		log.Logger().Debug("Received trades event")
-	}
+	ws.logDebug("Received trades event")
+
 	if ws.hasTradesWsHandler() {
 		ws.tradesWsHandler.handleMessage(bytes)
 	}
 }
 
 func (ws *webSocket) handleBookEvent(bytes []byte) {
-	if ws.debug {
-		log.Logger().Debug("Received book event")
-	}
+	ws.logDebug("Received book event")
+
 	if ws.hasBookWsHandler() {
 		ws.bookWsHandler.handleMessage(bytes)
 	}
 }
 
 func (ws *webSocket) handleOrderEvent(bytes []byte) {
-	if ws.debug {
-		log.Logger().Debug("Received order event")
-	}
+	ws.logDebug("Received order event")
+
 	if ws.hasAccountWsHandler() {
 		ws.accountWsHandler.handleOrderMessage(bytes)
 	}
 }
 
 func (ws *webSocket) handleFillEvent(bytes []byte) {
-	if ws.debug {
-		log.Logger().Debug("Received fill event")
-	}
+	ws.logDebug("Received fill event")
+
 	if ws.hasAccountWsHandler() {
 		ws.accountWsHandler.handleFillMessage(bytes)
 	}
 }
 
 func (ws *webSocket) handleAuthEvent(bytes []byte) {
-	if ws.debug {
-		log.Logger().Debug("Received auth event")
-	}
+	ws.logDebug("Received auth event")
+
 	if ws.hasAccountWsHandler() {
 		ws.accountWsHandler.handleAuthMessage(bytes)
 	}
@@ -424,4 +406,10 @@ func (ws *webSocket) hasBookWsHandler() bool {
 
 func (ws *webSocket) hasAccountWsHandler() bool {
 	return ws.accountWsHandler != nil
+}
+
+func (ws *webSocket) logDebug(message string, args ...any) {
+	if ws.debug {
+		log.Logger().Debug(message, args...)
+	}
 }
