@@ -87,11 +87,6 @@ func (o *OrderEvent) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	getOrEmpty := func(key string) string {
-		value, exist := orderEvent[key]
-		return util.IfOrElse(exist, func() string { return value.(string) }, "")
-	}
-
 	var (
 		market              = orderEvent["market"].(string)
 		event               = orderEvent["event"].(string)
@@ -113,10 +108,10 @@ func (o *OrderEvent) UnmarshalJSON(data []byte) error {
 		visible             = orderEvent["visible"].(bool)
 
 		// only for stop orders
-		triggerPrice     = getOrEmpty("triggerPrice")
-		triggerAmount    = getOrEmpty("triggerAmount")
-		triggerType      = getOrEmpty("triggerType")
-		triggerReference = getOrEmpty("triggerReference")
+		triggerPrice     = getOrEmpty("triggerPrice", orderEvent)
+		triggerAmount    = getOrEmpty("triggerAmount", orderEvent)
+		triggerType      = getOrEmpty("triggerType", orderEvent)
+		triggerReference = getOrEmpty("triggerReference", orderEvent)
 	)
 
 	o.Market = market
@@ -147,7 +142,27 @@ func (o *OrderEvent) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type Fill struct{}
+type Fill struct {
+	// The id of the order on which has been filled
+	OrderId string `json:"orderId"`
+	// The id of the returned fill
+	FillId string `json:"fillId"`
+	// The current timestamp in milliseconds since 1 Jan 1970
+	Timestamp int64 `json:"timestamp"`
+	// The amount in base currency for which the trade has been made
+	Amount float64 `json:"amount"`
+	// The side for the taker
+	// Enum: "buy" | "sell"
+	Side string `json:"side"`
+	// The price in quote currency for which the trade has been made
+	Price float64 `json:"price"`
+	// True for takers, false for makers
+	Taker bool `json:"taker"`
+	// The amount of fee that has been paid. Value is negative for rebates. Only available if settled is true
+	Fee float64 `json:"fee"`
+	// Currency in which the fee has been paid. Only available if settled is true
+	FeeCurrency string `json:"feeCurrency"`
+}
 
 type FillEvent struct {
 	// Describes the returned event over the socket
@@ -156,6 +171,46 @@ type FillEvent struct {
 	Market string `json:"market"`
 	// The fill itself
 	Fill Fill `json:"fill"`
+}
+
+func (f *FillEvent) UnmarshalJSON(data []byte) error {
+	var fillEvent map[string]any
+	err := json.Unmarshal(data, &fillEvent)
+	if err != nil {
+		return err
+	}
+
+	var (
+		market    = fillEvent["market"].(string)
+		event     = fillEvent["event"].(string)
+		orderId   = fillEvent["orderId"].(string)
+		fillId    = fillEvent["fillId"].(string)
+		timestamp = fillEvent["timestamp"].(float64)
+		amount    = fillEvent["amount"].(string)
+		side      = fillEvent["side"].(string)
+		price     = fillEvent["price"].(string)
+		taker     = fillEvent["taker"].(bool)
+
+		// only available if settled is true
+		fee         = getOrEmpty("fee", fillEvent)
+		feeCurrency = getOrEmpty("feeCurrency", fillEvent)
+	)
+
+	f.Market = market
+	f.Event = event
+	f.Fill = Fill{
+		OrderId:     orderId,
+		FillId:      fillId,
+		Timestamp:   int64(timestamp),
+		Amount:      util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, ZERO),
+		Side:        side,
+		Price:       util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, ZERO),
+		Taker:       taker,
+		Fee:         util.IfOrElse(len(fee) > 0, func() float64 { return util.MustFloat64(fee) }, ZERO),
+		FeeCurrency: feeCurrency,
+	}
+
+	return nil
 }
 
 type AccountSubscription interface {
@@ -362,4 +417,9 @@ func (t *accountWsHandler) hasFillChn(market string) bool {
 	}
 
 	return false
+}
+
+func getOrEmpty(key string, data map[string]any) string {
+	value, exist := data[key]
+	return util.IfOrElse(exist, func() string { return value.(string) }, "")
 }
