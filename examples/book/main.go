@@ -12,12 +12,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	candlechn, err := ws.Candles().Subscribe("ETH-EUR", "5m", 0)
+	bookchn, err := ws.Book().Subscribe("ETH-EUR", 0)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for candleEvent := range candlechn {
-		log.Println(candleEvent)
+	for bookEvent := range bookchn {
+		log.Println(bookEvent)
 	}
 }

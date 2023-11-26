@@ -12,12 +12,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	candlechn, err := ws.Candles().Subscribe("ETH-EUR", "5m", 0)
+	ticker24hchn, err := ws.Ticker24h().Subscribe("ETH-EUR", 0)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for candleEvent := range candlechn {
-		log.Println(candleEvent)
+	for ticker24hEvent := range ticker24hchn {
+		log.Println(ticker24hEvent)
 	}
 }

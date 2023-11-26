@@ -13,7 +13,7 @@ func main() {
 		log.Println("Starting without .env file")
 	}
 
-	ws, err := bitvavo.NewWebSocket(bitvavo.WithDebug(true))
+	ws, err := bitvavo.NewWebSocket()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -26,7 +26,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for value := range account.Order(100) {
-		log.Println("value", value)
+	for orderEvent := range account.Order(50) {
+		log.Println(orderEvent)
 	}
 }

@@ -14,6 +14,7 @@ const (
 	wsUrl            = "wss://ws.bitvavo.com/v2"
 	readLimit        = 655350
 	handshakeTimeout = 45 * time.Second
+	maxWindowTimeMs  = 60000
 )
 
 type EventHandler[T any] interface {
@@ -115,8 +116,8 @@ func WithAutoReconnect(autoReconnect bool) Option {
 // The default value is 10000 (10s), the maximum value is 60000 (60s).
 func WithWindowTime(windowTimeMs uint64) Option {
 	return func(ws *webSocket) {
-		if windowTimeMs > 60000 {
-			windowTimeMs = 60000
+		if windowTimeMs > maxWindowTimeMs {
+			windowTimeMs = maxWindowTimeMs
 		}
 		ws.windowTimeMs = windowTimeMs
 	}
@@ -161,26 +162,7 @@ func (ws *webSocket) Account(apiKey string, apiSecret string) AccountEventHandle
 }
 
 func (ws *webSocket) Close() error {
-	defer close(ws.writechn)
-
-	if ws.hasCandleWsHandler() {
-		ws.candlesEventHandler.UnsubscribeAll()
-	}
-	if ws.hasTickerWsHandler() {
-		ws.tickerEventHandler.UnsubscribeAll()
-	}
-	if ws.hasTicker24hWsHandler() {
-		ws.ticker24hEventHandler.UnsubscribeAll()
-	}
-	if ws.hasTradesWsHandler() {
-		ws.tradesEventHandler.UnsubscribeAll()
-	}
-	if ws.hasBookWsHandler() {
-		ws.bookEventHandler.UnsubscribeAll()
-	}
-	if ws.hasAccountWsHandler() {
-		ws.accountEventHandler.UnsubscribeAll()
-	}
+	close(ws.writechn)
 
 	return ws.conn.Close()
 }

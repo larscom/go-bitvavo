@@ -18,7 +18,7 @@ type CandlesEvent struct {
 	// The market which was requested in the subscription.
 	Market string `json:"market"`
 
-	//The interval which was requested in the subscription.
+	// The interval which was requested in the subscription.
 	Interval string `json:"interval"`
 
 	// The candle in the defined time period.
