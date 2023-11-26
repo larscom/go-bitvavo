@@ -11,42 +11,57 @@ import (
 )
 
 type Ticker24hEvent struct {
-	// Describes the returned event over the socket
+	// Describes the returned event over the socket.
 	Event string `json:"event"`
-	// The market which was requested in the subscription
+
+	// The market which was requested in the subscription.
 	Market string `json:"market"`
-	// The ticker24h containing the prices etc
+
+	// The ticker24h containing the prices etc.
 	Ticker24h Ticker24h `json:"ticker24h"`
 }
 
 type Ticker24h struct {
-	// The open price of the 24 hour period
+	// The open price of the 24 hour period.
 	Open float64 `json:"open"`
-	// The highest price for which a trade occurred in the 24 hour period
+
+	// The highest price for which a trade occurred in the 24 hour period.
 	High float64 `json:"high"`
-	// The lowest price for which a trade occurred in the 24 hour period
+
+	// The lowest price for which a trade occurred in the 24 hour period.
 	Low float64 `json:"low"`
-	// The last price for which a trade occurred in the 24 hour period
+
+	// The last price for which a trade occurred in the 24 hour period.
 	Last float64 `json:"last"`
-	// The total volume of the 24 hour period in base currency
+
+	// The total volume of the 24 hour period in base currency.
 	Volume float64 `json:"volume"`
-	// The total volume of the 24 hour period in quote currency
+
+	// The total volume of the 24 hour period in quote currency.
 	VolumeQuote float64 `json:"volumeQuote"`
-	// The best (highest) bid offer at the current moment
+
+	// The best (highest) bid offer at the current moment.
 	Bid float64 `json:"bid"`
-	// The size of the best (highest) bid offer
+
+	// The size of the best (highest) bid offer.
 	BidSize float64 `json:"bidSize"`
-	// The best (lowest) ask offer at the current moment
+
+	// The best (lowest) ask offer at the current moment.
 	Ask float64 `json:"ask"`
-	// The size of the best (lowest) ask offer
+
+	// The size of the best (lowest) ask offer.
 	AskSize float64 `json:"askSize"`
-	// Timestamp in unix milliseconds
+
+	// Timestamp in unix milliseconds.
 	Timestamp int64 `json:"timestamp"`
-	// Start timestamp in unix milliseconds
+
+	// Start timestamp in unix milliseconds.
 	StartTimestamp int64 `json:"startTimestamp"`
-	// Open timestamp in unix milliseconds
+
+	// Open timestamp in unix milliseconds.
 	OpenTimestamp int64 `json:"openTimestamp"`
-	// Close timestamp in unix milliseconds
+
+	// Close timestamp in unix milliseconds.
 	CloseTimestamp int64 `json:"closeTimestamp"`
 }
 
@@ -105,32 +120,32 @@ func (t *Ticker24hEvent) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-type ticker24hWsHandler struct {
+type ticker24hEventHandler struct {
 	writechn chan<- WebSocketMessage
 	subs     *safemap.SafeMap[string, chan<- Ticker24hEvent]
 }
 
-func newTicker24hWsHandler(writechn chan<- WebSocketMessage) *ticker24hWsHandler {
-	return &ticker24hWsHandler{
+func newTicker24hEventHandler(writechn chan<- WebSocketMessage) *ticker24hEventHandler {
+	return &ticker24hEventHandler{
 		writechn: writechn,
 		subs:     safemap.New[string, chan<- Ticker24hEvent](),
 	}
 }
 
-func (t *ticker24hWsHandler) Subscribe(market string) (<-chan Ticker24hEvent, error) {
+func (t *ticker24hEventHandler) Subscribe(market string, buffSize uint64) (<-chan Ticker24hEvent, error) {
 	if t.subs.Has(market) {
 		return nil, fmt.Errorf("subscription already active for market: %s", market)
 	}
 
 	t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameTicker24h, market)
 
-	chn := make(chan Ticker24hEvent)
+	chn := make(chan Ticker24hEvent, buffSize)
 	t.subs.Set(market, chn)
 
 	return chn, nil
 }
 
-func (t *ticker24hWsHandler) Unsubscribe(market string) error {
+func (t *ticker24hEventHandler) Unsubscribe(market string) error {
 	sub, exist := t.subs.Get(market)
 
 	if exist {
@@ -143,7 +158,7 @@ func (t *ticker24hWsHandler) Unsubscribe(market string) error {
 	return fmt.Errorf("no subscription active for market: %s", market)
 }
 
-func (t *ticker24hWsHandler) UnsubscribeAll() error {
+func (t *ticker24hEventHandler) UnsubscribeAll() error {
 	for sub := range t.subs.IterBuffered() {
 		market := sub.Key
 		if err := t.Unsubscribe(market); err != nil {
@@ -153,7 +168,7 @@ func (t *ticker24hWsHandler) UnsubscribeAll() error {
 	return nil
 }
 
-func (t *ticker24hWsHandler) handleMessage(bytes []byte) {
+func (t *ticker24hEventHandler) handleMessage(bytes []byte) {
 	var ticker24hEvent *Ticker24hEvent
 	if err := json.Unmarshal(bytes, &ticker24hEvent); err != nil {
 		log.Logger().Error("Couldn't unmarshal message into Ticker24hEvent", "message", string(bytes))
@@ -168,7 +183,7 @@ func (t *ticker24hWsHandler) handleMessage(bytes []byte) {
 	}
 }
 
-func (t *ticker24hWsHandler) reconnect() {
+func (t *ticker24hEventHandler) reconnect() {
 	for sub := range t.subs.IterBuffered() {
 		market := sub.Key
 		t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameTicker24h, market)

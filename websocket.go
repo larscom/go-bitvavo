@@ -16,14 +16,15 @@ const (
 	handshakeTimeout = 45 * time.Second
 )
 
-type WsHandler[T any] interface {
-	// Subscribe to market
-	Subscribe(market string) (<-chan T, error)
+type EventHandler[T any] interface {
+	// Subscribe to market.
+	// You can set the buffSize for the underlying channel, 0 for no buffer.
+	Subscribe(market string, buffSize uint64) (<-chan T, error)
 
-	// Unsubscribe from market
+	// Unsubscribe from market.
 	Unsubscribe(market string) error
 
-	// Unsubscribe from every market
+	// Unsubscribe from every market.
 	UnsubscribeAll() error
 }
 
@@ -31,39 +32,42 @@ type WebSocket interface {
 	// Close everything, including subscriptions, underlying websockets, gracefull shutdown...
 	Close() error
 
-	// Candles websocket handler to handle candle events and subscriptions
-	Candles() CandlesWsHandler
+	// Candles event handler to handle candle events and subscriptions.
+	Candles() CandlesEventHandler
 
-	// Ticker websocket handler to handle ticker events and subscriptions
-	Ticker() WsHandler[TickerEvent]
+	// Ticker event handler to handle ticker events and subscriptions.
+	Ticker() EventHandler[TickerEvent]
 
-	// Ticker24h websocket handler to handle ticker24h events and subscriptions
-	Ticker24h() WsHandler[Ticker24hEvent]
+	// Ticker24h event handler to handle ticker24h events and subscriptions.
+	Ticker24h() EventHandler[Ticker24hEvent]
 
-	// Trades websocket handler to handle trade events and subscriptions
-	Trades() WsHandler[TradesEvent]
+	// Trades event handler to handle trade events and subscriptions.
+	Trades() EventHandler[TradesEvent]
 
-	// Book websocket handler to handle book events and subscriptions
-	Book() WsHandler[BookEvent]
+	// Book event handler to handle book events and subscriptions.
+	Book() EventHandler[BookEvent]
 
-	// Account websocket handler to handle account events and subscriptions, requires authentication
-	Account(apiKey string, apiSecret string) AccountWsHandler
+	// Account event handler to handle account subscription and order/fill events, requires authentication.
+	Account(apiKey string, apiSecret string) AccountEventHandler
 }
 
 type webSocket struct {
-	reconnectCount int64
+	reconnectCount uint64
 	autoReconnect  bool
 	conn           *websocket.Conn
 	writechn       chan WebSocketMessage
 	debug          bool
 
-	// websocket handlers
-	candleWsHandler    *candleWsHandler
-	tickerWsHandler    *tickerWsHandler
-	ticker24hWsHandler *ticker24hWsHandler
-	tradesWsHandler    *tradesWsHandler
-	bookWsHandler      *bookWsHandler
-	accountWsHandler   *accountWsHandler
+	// public
+	candlesEventHandler   *candlesEventHandler
+	tickerEventHandler    *tickerEventHandler
+	ticker24hEventHandler *ticker24hEventHandler
+	tradesEventHandler    *tradesEventHandler
+	bookEventHandler      *bookEventHandler
+
+	// authenticated
+	accountEventHandler *accountEventHandler
+	windowTimeMs        uint64
 }
 
 func NewWebSocket(options ...Option) (WebSocket, error) {
@@ -75,6 +79,7 @@ func NewWebSocket(options ...Option) (WebSocket, error) {
 	ws := &webSocket{
 		conn:          conn,
 		autoReconnect: true,
+		windowTimeMs:  10000,
 		writechn:      make(chan WebSocketMessage),
 	}
 
@@ -106,56 +111,75 @@ func WithAutoReconnect(autoReconnect bool) Option {
 	}
 }
 
-func (ws *webSocket) Candles() CandlesWsHandler {
-	ws.candleWsHandler = newCandleWsHandler(ws.writechn)
-	return ws.candleWsHandler
+// The time in milliseconds that your request is allowed to execute in.
+// The default value is 10000 (10s), the maximum value is 60000 (60s).
+func WithWindowTime(windowTimeMs uint64) Option {
+	return func(ws *webSocket) {
+		if windowTimeMs > 60000 {
+			windowTimeMs = 60000
+		}
+		ws.windowTimeMs = windowTimeMs
+	}
 }
 
-func (ws *webSocket) Ticker() WsHandler[TickerEvent] {
-	ws.tickerWsHandler = newTickerWsHandler(ws.writechn)
-	return ws.tickerWsHandler
+// The buff size for the write channel, by default the write channel is unbuffered.
+// The write channel writes messages to the websocket.
+func WithWriteBuffSize(buffSize uint64) Option {
+	return func(ws *webSocket) {
+		ws.writechn = make(chan WebSocketMessage, buffSize)
+	}
 }
 
-func (ws *webSocket) Ticker24h() WsHandler[Ticker24hEvent] {
-	ws.ticker24hWsHandler = newTicker24hWsHandler(ws.writechn)
-	return ws.ticker24hWsHandler
+func (ws *webSocket) Candles() CandlesEventHandler {
+	ws.candlesEventHandler = newCandlesEventHandler(ws.writechn)
+	return ws.candlesEventHandler
 }
 
-func (ws *webSocket) Trades() WsHandler[TradesEvent] {
-	ws.tradesWsHandler = newTradesWsHandler(ws.writechn)
-	return ws.tradesWsHandler
+func (ws *webSocket) Ticker() EventHandler[TickerEvent] {
+	ws.tickerEventHandler = newTickerEventHandler(ws.writechn)
+	return ws.tickerEventHandler
 }
 
-func (ws *webSocket) Book() WsHandler[BookEvent] {
-	ws.bookWsHandler = newBookWsHandler(ws.writechn)
-	return ws.bookWsHandler
+func (ws *webSocket) Ticker24h() EventHandler[Ticker24hEvent] {
+	ws.ticker24hEventHandler = newTicker24hEventHandler(ws.writechn)
+	return ws.ticker24hEventHandler
 }
 
-func (ws *webSocket) Account(apiKey string, apiSecret string) AccountWsHandler {
-	ws.accountWsHandler = newAccountWsHandler(apiKey, apiSecret, ws.writechn)
-	return ws.accountWsHandler
+func (ws *webSocket) Trades() EventHandler[TradesEvent] {
+	ws.tradesEventHandler = newTradesEventHandler(ws.writechn)
+	return ws.tradesEventHandler
+}
+
+func (ws *webSocket) Book() EventHandler[BookEvent] {
+	ws.bookEventHandler = newBookEventHandler(ws.writechn)
+	return ws.bookEventHandler
+}
+
+func (ws *webSocket) Account(apiKey string, apiSecret string) AccountEventHandler {
+	ws.accountEventHandler = newAccountEventHandler(apiKey, apiSecret, ws.windowTimeMs, ws.writechn)
+	return ws.accountEventHandler
 }
 
 func (ws *webSocket) Close() error {
 	defer close(ws.writechn)
 
 	if ws.hasCandleWsHandler() {
-		ws.candleWsHandler.UnsubscribeAll()
+		ws.candlesEventHandler.UnsubscribeAll()
 	}
 	if ws.hasTickerWsHandler() {
-		ws.tickerWsHandler.UnsubscribeAll()
+		ws.tickerEventHandler.UnsubscribeAll()
 	}
 	if ws.hasTicker24hWsHandler() {
-		ws.ticker24hWsHandler.UnsubscribeAll()
+		ws.ticker24hEventHandler.UnsubscribeAll()
 	}
 	if ws.hasTradesWsHandler() {
-		ws.tradesWsHandler.UnsubscribeAll()
+		ws.tradesEventHandler.UnsubscribeAll()
 	}
 	if ws.hasBookWsHandler() {
-		ws.bookWsHandler.UnsubscribeAll()
+		ws.bookEventHandler.UnsubscribeAll()
 	}
 	if ws.hasAccountWsHandler() {
-		ws.accountWsHandler.UnsubscribeAll()
+		ws.accountEventHandler.UnsubscribeAll()
 	}
 
 	return ws.conn.Close()
@@ -221,22 +245,22 @@ func (ws *webSocket) reconnect() {
 	go ws.readLoop()
 
 	if ws.hasCandleWsHandler() {
-		ws.candleWsHandler.reconnect()
+		ws.candlesEventHandler.reconnect()
 	}
 	if ws.hasTickerWsHandler() {
-		ws.tickerWsHandler.reconnect()
+		ws.tickerEventHandler.reconnect()
 	}
 	if ws.hasTicker24hWsHandler() {
-		ws.ticker24hWsHandler.reconnect()
+		ws.ticker24hEventHandler.reconnect()
 	}
 	if ws.hasTradesWsHandler() {
-		ws.tradesWsHandler.reconnect()
+		ws.tradesEventHandler.reconnect()
 	}
 	if ws.hasBookWsHandler() {
-		ws.bookWsHandler.reconnect()
+		ws.bookEventHandler.reconnect()
 	}
 	if ws.hasAccountWsHandler() {
-		ws.accountWsHandler.reconnect()
+		ws.accountEventHandler.reconnect()
 	}
 }
 
@@ -324,7 +348,7 @@ func (ws *webSocket) handleCandleEvent(bytes []byte) {
 	ws.logDebug("Received candles event")
 
 	if ws.hasCandleWsHandler() {
-		ws.candleWsHandler.handleMessage(bytes)
+		ws.candlesEventHandler.handleMessage(bytes)
 	}
 }
 
@@ -332,7 +356,7 @@ func (ws *webSocket) handleTickerEvent(bytes []byte) {
 	ws.logDebug("Received ticker event")
 
 	if ws.hasTickerWsHandler() {
-		ws.tickerWsHandler.handleMessage(bytes)
+		ws.tickerEventHandler.handleMessage(bytes)
 	}
 }
 
@@ -340,7 +364,7 @@ func (ws *webSocket) handleTicker24hEvent(bytes []byte) {
 	ws.logDebug("Received ticker24h event")
 
 	if ws.hasTicker24hWsHandler() {
-		ws.ticker24hWsHandler.handleMessage(bytes)
+		ws.ticker24hEventHandler.handleMessage(bytes)
 	}
 }
 
@@ -348,7 +372,7 @@ func (ws *webSocket) handleTradesEvent(bytes []byte) {
 	ws.logDebug("Received trades event")
 
 	if ws.hasTradesWsHandler() {
-		ws.tradesWsHandler.handleMessage(bytes)
+		ws.tradesEventHandler.handleMessage(bytes)
 	}
 }
 
@@ -356,7 +380,7 @@ func (ws *webSocket) handleBookEvent(bytes []byte) {
 	ws.logDebug("Received book event")
 
 	if ws.hasBookWsHandler() {
-		ws.bookWsHandler.handleMessage(bytes)
+		ws.bookEventHandler.handleMessage(bytes)
 	}
 }
 
@@ -364,7 +388,7 @@ func (ws *webSocket) handleOrderEvent(bytes []byte) {
 	ws.logDebug("Received order event")
 
 	if ws.hasAccountWsHandler() {
-		ws.accountWsHandler.handleOrderMessage(bytes)
+		ws.accountEventHandler.handleOrderMessage(bytes)
 	}
 }
 
@@ -372,7 +396,7 @@ func (ws *webSocket) handleFillEvent(bytes []byte) {
 	ws.logDebug("Received fill event")
 
 	if ws.hasAccountWsHandler() {
-		ws.accountWsHandler.handleFillMessage(bytes)
+		ws.accountEventHandler.handleFillMessage(bytes)
 	}
 }
 
@@ -380,32 +404,32 @@ func (ws *webSocket) handleAuthEvent(bytes []byte) {
 	ws.logDebug("Received auth event")
 
 	if ws.hasAccountWsHandler() {
-		ws.accountWsHandler.handleAuthMessage(bytes)
+		ws.accountEventHandler.handleAuthMessage(bytes)
 	}
 }
 
 func (ws *webSocket) hasCandleWsHandler() bool {
-	return ws.candleWsHandler != nil
+	return ws.candlesEventHandler != nil
 }
 
 func (ws *webSocket) hasTickerWsHandler() bool {
-	return ws.tickerWsHandler != nil
+	return ws.tickerEventHandler != nil
 }
 
 func (ws *webSocket) hasTicker24hWsHandler() bool {
-	return ws.ticker24hWsHandler != nil
+	return ws.ticker24hEventHandler != nil
 }
 
 func (ws *webSocket) hasTradesWsHandler() bool {
-	return ws.tradesWsHandler != nil
+	return ws.tradesEventHandler != nil
 }
 
 func (ws *webSocket) hasBookWsHandler() bool {
-	return ws.bookWsHandler != nil
+	return ws.bookEventHandler != nil
 }
 
 func (ws *webSocket) hasAccountWsHandler() bool {
-	return ws.accountWsHandler != nil
+	return ws.accountEventHandler != nil
 }
 
 func (ws *webSocket) logDebug(message string, args ...any) {

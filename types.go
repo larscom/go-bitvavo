@@ -40,7 +40,7 @@ var (
 )
 
 type SubscribedEvent struct {
-	// Describes the returned event over the socket
+	// Describes the returned event over the socket.
 	Event string `json:"event"`
 
 	// Subscriptions map[event][]markets
@@ -48,9 +48,10 @@ type SubscribedEvent struct {
 }
 
 type AuthEvent struct {
-	// Describes the returned event over the socket
+	// Describes the returned event over the socket.
 	Event string `json:"event"`
-	// Whether the user is authenticated
+
+	// Whether the user is authenticated.
 	Authenticated bool `json:"authenticated"`
 }
 
@@ -68,14 +69,14 @@ type WebSocketMessage struct {
 	Action   string    `json:"action"`
 	Channels []Channel `json:"channels,omitempty"`
 
-	// Api Key
+	// Api Key.
 	Key string `json:"key,omitempty"`
-	// SHA256 HMAC hex digest of timestamp + method + url + body
+	// SHA256 HMAC hex digest of timestamp + method + url + body.
 	Signature string `json:"signature,omitempty"`
-	// The current timestamp in milliseconds since 1 Jan 1970
+	// The current timestamp in milliseconds since 1 Jan 1970.
 	Timestamp int64 `json:"timestamp,omitempty"`
-	// The window that allows execution of your request in milliseconds since 1 Jan 1970. The default value is 10000 (10s) and maximum value is 60000 (60s)
-	Window int64 `json:"window,omitempty"`
+	// The window that allows execution of your request in milliseconds since 1 Jan 1970. The default value is 10000 (10s) and maximum value is 60000 (60s).
+	Window uint64 `json:"window,omitempty"`
 }
 
 type Channel struct {

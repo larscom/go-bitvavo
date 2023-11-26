@@ -11,24 +11,30 @@ import (
 )
 
 type TickerEvent struct {
-	// Describes the returned event over the socket
+	// Describes the returned event over the socket.
 	Event string `json:"event"`
-	// The market which was requested in the subscription
+
+	// The market which was requested in the subscription.
 	Market string `json:"market"`
-	// The ticker containing the prices
+
+	// The ticker containing the prices.
 	Ticker Ticker `json:"ticker"`
 }
 
 type Ticker struct {
-	// The price of the best (highest) bid offer available, only sent when either bestBid or bestBidSize has changed
+	// The price of the best (highest) bid offer available, only sent when either bestBid or bestBidSize has changed.
 	BestBid float64 `json:"bestBid"`
-	// The size of the best (highest) bid offer available, only sent when either bestBid or bestBidSize has changed
+
+	// The size of the best (highest) bid offer available, only sent when either bestBid or bestBidSize has changed.
 	BestBidSize float64 `json:"bestBidSize"`
-	// The price of the best (lowest) ask offer available, only sent when either bestAsk or bestAskSize has changed
+
+	// The price of the best (lowest) ask offer available, only sent when either bestAsk or bestAskSize has changed.
 	BestAsk float64 `json:"bestAsk"`
-	// The size of the best (lowest) ask offer available, only sent when either bestAsk or bestAskSize has changed
+
+	// The size of the best (lowest) ask offer available, only sent when either bestAsk or bestAskSize has changed.
 	BestAskSize float64 `json:"bestAskSize"`
-	// The last price for which a trade has occurred, only sent when lastPrice has changed
+
+	// The last price for which a trade has occurred, only sent when lastPrice has changed.
 	LastPrice float64 `json:"lastPrice"`
 }
 
@@ -61,32 +67,32 @@ func (t *TickerEvent) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type tickerWsHandler struct {
+type tickerEventHandler struct {
 	writechn chan<- WebSocketMessage
 	subs     *safemap.SafeMap[string, chan<- TickerEvent]
 }
 
-func newTickerWsHandler(writechn chan<- WebSocketMessage) *tickerWsHandler {
-	return &tickerWsHandler{
+func newTickerEventHandler(writechn chan<- WebSocketMessage) *tickerEventHandler {
+	return &tickerEventHandler{
 		writechn: writechn,
 		subs:     safemap.New[string, chan<- TickerEvent](),
 	}
 }
 
-func (t *tickerWsHandler) Subscribe(market string) (<-chan TickerEvent, error) {
+func (t *tickerEventHandler) Subscribe(market string, buffSize uint64) (<-chan TickerEvent, error) {
 	if t.subs.Has(market) {
 		return nil, fmt.Errorf("subscription already active for market: %s", market)
 	}
 
 	t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameTicker, market)
 
-	chn := make(chan TickerEvent)
+	chn := make(chan TickerEvent, buffSize)
 	t.subs.Set(market, chn)
 
 	return chn, nil
 }
 
-func (t *tickerWsHandler) Unsubscribe(market string) error {
+func (t *tickerEventHandler) Unsubscribe(market string) error {
 	sub, exist := t.subs.Get(market)
 
 	if exist {
@@ -99,7 +105,7 @@ func (t *tickerWsHandler) Unsubscribe(market string) error {
 	return fmt.Errorf("no subscription active for market: %s", market)
 }
 
-func (t *tickerWsHandler) UnsubscribeAll() error {
+func (t *tickerEventHandler) UnsubscribeAll() error {
 	for sub := range t.subs.IterBuffered() {
 		market := sub.Key
 		if err := t.Unsubscribe(market); err != nil {
@@ -109,7 +115,7 @@ func (t *tickerWsHandler) UnsubscribeAll() error {
 	return nil
 }
 
-func (t *tickerWsHandler) handleMessage(bytes []byte) {
+func (t *tickerEventHandler) handleMessage(bytes []byte) {
 	var tickerEvent *TickerEvent
 	if err := json.Unmarshal(bytes, &tickerEvent); err != nil {
 		log.Logger().Error("Couldn't unmarshal message into TickerEvent", "message", string(bytes))
@@ -124,7 +130,7 @@ func (t *tickerWsHandler) handleMessage(bytes []byte) {
 	}
 }
 
-func (t *tickerWsHandler) reconnect() {
+func (t *tickerEventHandler) reconnect() {
 	for sub := range t.subs.IterBuffered() {
 		market := sub.Key
 		t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameTicker, market)

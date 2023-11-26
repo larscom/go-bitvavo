@@ -12,18 +12,21 @@ import (
 )
 
 type CandlesEvent struct {
-	// Describes the returned event over the socket
+	// Describes the returned event over the socket.
 	Event string `json:"event"`
-	// The market which was requested in the subscription
+
+	// The market which was requested in the subscription.
 	Market string `json:"market"`
-	//The interval which was requested in the subscription
+
+	//The interval which was requested in the subscription.
 	Interval string `json:"interval"`
-	// The candle in the defined time period
+
+	// The candle in the defined time period.
 	Candle Candle `json:"candle"`
 }
 
 type Candle struct {
-	// Timestamp in unix milliseconds
+	// Timestamp in unix milliseconds.
 	Timestamp int64   `json:"timestamp"`
 	Open      float64 `json:"open"`
 	High      float64 `json:"high"`
@@ -55,9 +58,10 @@ func (c *Candle) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type CandlesWsHandler interface {
-	// Subscribe to market with interval
-	Subscribe(market string, interval string) (<-chan CandlesEvent, error)
+type CandlesEventHandler interface {
+	// Subscribe to market with interval.
+	// You can set the buffSize for this channel, 0 for no buffer
+	Subscribe(market string, interval string, buffSize uint64) (<-chan CandlesEvent, error)
 
 	// Unsubscribe from market with interval
 	Unsubscribe(market string, interval string) error
@@ -66,13 +70,13 @@ type CandlesWsHandler interface {
 	UnsubscribeAll() error
 }
 
-type candleWsHandler struct {
+type candlesEventHandler struct {
 	writechn chan<- WebSocketMessage
 	subs     *safemap.SafeMap[string, chan<- CandlesEvent]
 }
 
-func newCandleWsHandler(writechn chan<- WebSocketMessage) *candleWsHandler {
-	return &candleWsHandler{
+func newCandlesEventHandler(writechn chan<- WebSocketMessage) *candlesEventHandler {
+	return &candlesEventHandler{
 		writechn: writechn,
 		subs:     safemap.New[string, chan<- CandlesEvent](),
 	}
@@ -91,7 +95,7 @@ func newCandleWebSocketMessage(action Action, market string, interval string) We
 	}
 }
 
-func (c *candleWsHandler) Subscribe(market string, interval string) (<-chan CandlesEvent, error) {
+func (c *candlesEventHandler) Subscribe(market string, interval string, buffSize uint64) (<-chan CandlesEvent, error) {
 
 	key := getMapKey(market, interval)
 	if c.subs.Has(key) {
@@ -100,13 +104,13 @@ func (c *candleWsHandler) Subscribe(market string, interval string) (<-chan Cand
 
 	c.writechn <- newCandleWebSocketMessage(ActionSubscribe, market, interval)
 
-	chn := make(chan CandlesEvent)
+	chn := make(chan CandlesEvent, buffSize)
 	c.subs.Set(key, chn)
 
 	return chn, nil
 }
 
-func (c *candleWsHandler) Unsubscribe(market string, interval string) error {
+func (c *candlesEventHandler) Unsubscribe(market string, interval string) error {
 	key := getMapKey(market, interval)
 	sub, exist := c.subs.Get(key)
 
@@ -120,7 +124,7 @@ func (c *candleWsHandler) Unsubscribe(market string, interval string) error {
 	return fmt.Errorf("no subscription active for market: %s with interval: %s", market, interval)
 }
 
-func (c *candleWsHandler) UnsubscribeAll() error {
+func (c *candlesEventHandler) UnsubscribeAll() error {
 	for sub := range c.subs.IterBuffered() {
 		market, interval := getMapKeyValue(sub.Key)
 		if err := c.Unsubscribe(market, interval); err != nil {
@@ -130,7 +134,7 @@ func (c *candleWsHandler) UnsubscribeAll() error {
 	return nil
 }
 
-func (c *candleWsHandler) handleMessage(bytes []byte) {
+func (c *candlesEventHandler) handleMessage(bytes []byte) {
 	var candleEvent *CandlesEvent
 	if err := json.Unmarshal(bytes, &candleEvent); err != nil {
 		log.Logger().Error("Couldn't unmarshal message into CandlesEvent", "message", string(bytes))
@@ -150,7 +154,7 @@ func (c *candleWsHandler) handleMessage(bytes []byte) {
 	}
 }
 
-func (c *candleWsHandler) reconnect() {
+func (c *candlesEventHandler) reconnect() {
 	for sub := range c.subs.IterBuffered() {
 		market, interval := getMapKeyValue(sub.Key)
 		c.writechn <- newCandleWebSocketMessage(ActionSubscribe, market, interval)

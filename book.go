@@ -11,27 +11,32 @@ import (
 )
 
 type BookEvent struct {
-	// Describes the returned event over the socket
+	// Describes the returned event over the socket.
 	Event string `json:"event"`
-	// The market which was requested in the subscription
+
+	// The market which was requested in the subscription.
 	Market string `json:"market"`
-	// The book containing the bids and asks
+
+	// The book containing the bids and asks.
 	Book Book `json:"book"`
 }
 
 type Page struct {
-	// Bid / ask price
+	// Bid / ask price.
 	Price float64 `json:"price"`
-	//  Size of 0 means orders are no longer present at that price level, otherwise the returned size is the new total size on that price level
+
+	//  Size of 0 means orders are no longer present at that price level, otherwise the returned size is the new total size on that price level.
 	Size float64 `json:"size"`
 }
 
 type Book struct {
-	// Integer which is increased by one for every update to the book. Useful for synchronizing. Resets to zero after restarting the matching engine
+	// Integer which is increased by one for every update to the book. Useful for synchronizing. Resets to zero after restarting the matching engine.
 	Nonce int64 `json:"nonce"`
+
 	// Slice with all bids in the format [price, size], where an size of 0 means orders are no longer present at that price level,
-	// otherwise the returned size is the new total size on that price level
+	// otherwise the returned size is the new total size on that price level.
 	Bids []Page `json:"bids"`
+
 	// Slice with all asks in the format [price, size], where an size of 0 means orders are no longer present at that price level,
 	// otherwise the returned size is the new total size on that price level.
 	Asks []Page `json:"asks"`
@@ -85,32 +90,32 @@ func (b *BookEvent) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-type bookWsHandler struct {
+type bookEventHandler struct {
 	writechn chan<- WebSocketMessage
 	subs     *safemap.SafeMap[string, chan<- BookEvent]
 }
 
-func newBookWsHandler(writechn chan<- WebSocketMessage) *bookWsHandler {
-	return &bookWsHandler{
+func newBookEventHandler(writechn chan<- WebSocketMessage) *bookEventHandler {
+	return &bookEventHandler{
 		writechn: writechn,
 		subs:     safemap.New[string, chan<- BookEvent](),
 	}
 }
 
-func (t *bookWsHandler) Subscribe(market string) (<-chan BookEvent, error) {
+func (t *bookEventHandler) Subscribe(market string, buffSize uint64) (<-chan BookEvent, error) {
 	if t.subs.Has(market) {
 		return nil, fmt.Errorf("subscription already active for market: %s", market)
 	}
 
 	t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameBook, market)
 
-	chn := make(chan BookEvent)
+	chn := make(chan BookEvent, buffSize)
 	t.subs.Set(market, chn)
 
 	return chn, nil
 }
 
-func (t *bookWsHandler) Unsubscribe(market string) error {
+func (t *bookEventHandler) Unsubscribe(market string) error {
 	sub, exist := t.subs.Get(market)
 
 	if exist {
@@ -123,7 +128,7 @@ func (t *bookWsHandler) Unsubscribe(market string) error {
 	return fmt.Errorf("no subscription active for market: %s", market)
 }
 
-func (t *bookWsHandler) UnsubscribeAll() error {
+func (t *bookEventHandler) UnsubscribeAll() error {
 	for sub := range t.subs.IterBuffered() {
 		market := sub.Key
 		if err := t.Unsubscribe(market); err != nil {
@@ -133,7 +138,7 @@ func (t *bookWsHandler) UnsubscribeAll() error {
 	return nil
 }
 
-func (t *bookWsHandler) handleMessage(bytes []byte) {
+func (t *bookEventHandler) handleMessage(bytes []byte) {
 	var bookEvent *BookEvent
 	if err := json.Unmarshal(bytes, &bookEvent); err != nil {
 		log.Logger().Error("Couldn't unmarshal message into BookEvent", "message", string(bytes))
@@ -148,7 +153,7 @@ func (t *bookWsHandler) handleMessage(bytes []byte) {
 	}
 }
 
-func (t *bookWsHandler) reconnect() {
+func (t *bookEventHandler) reconnect() {
 	for sub := range t.subs.IterBuffered() {
 		market := sub.Key
 		t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameBook, market)
