@@ -145,13 +145,13 @@ func (o *OrderEvent) UnmarshalJSON(data []byte) error {
 		Status:              status,
 		Side:                side,
 		OrderType:           orderType,
-		Amount:              util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, ZERO),
-		AmountRemaining:     util.IfOrElse(len(amountRemaining) > 0, func() float64 { return util.MustFloat64(amountRemaining) }, ZERO),
-		Price:               util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, ZERO),
-		OnHold:              util.IfOrElse(len(onHold) > 0, func() float64 { return util.MustFloat64(onHold) }, ZERO),
+		Amount:              util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, zerof),
+		AmountRemaining:     util.IfOrElse(len(amountRemaining) > 0, func() float64 { return util.MustFloat64(amountRemaining) }, zerof),
+		Price:               util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, zerof),
+		OnHold:              util.IfOrElse(len(onHold) > 0, func() float64 { return util.MustFloat64(onHold) }, zerof),
 		OnHoldCurrency:      onHoldCurrency,
-		TriggerPrice:        util.IfOrElse(len(triggerPrice) > 0, func() float64 { return util.MustFloat64(triggerPrice) }, ZERO),
-		TriggerAmount:       util.IfOrElse(len(triggerAmount) > 0, func() float64 { return util.MustFloat64(triggerAmount) }, ZERO),
+		TriggerPrice:        util.IfOrElse(len(triggerPrice) > 0, func() float64 { return util.MustFloat64(triggerPrice) }, zerof),
+		TriggerAmount:       util.IfOrElse(len(triggerAmount) > 0, func() float64 { return util.MustFloat64(triggerAmount) }, zerof),
 		TriggerType:         triggerType,
 		TriggerReference:    triggerReference,
 		TimeInForce:         timeInForce,
@@ -223,11 +223,11 @@ func (f *FillEvent) UnmarshalJSON(data []byte) error {
 		OrderId:     orderId,
 		FillId:      fillId,
 		Timestamp:   int64(timestamp),
-		Amount:      util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, ZERO),
+		Amount:      util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, zerof),
 		Side:        side,
-		Price:       util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, ZERO),
+		Price:       util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, zerof),
 		Taker:       taker,
-		Fee:         util.IfOrElse(len(fee) > 0, func() float64 { return util.MustFloat64(fee) }, ZERO),
+		Fee:         util.IfOrElse(len(fee) > 0, func() float64 { return util.MustFloat64(fee) }, zerof),
 		FeeCurrency: feeCurrency,
 	}
 
@@ -299,7 +299,7 @@ func (t *accountEventHandler) Subscribe(market string) (AccountSub, error) {
 	}
 
 	if err := t.withAuth(func() {
-		t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameAccount, market)
+		t.writechn <- newWebSocketMessage(actionSubscribe, channelNameAccount, market)
 	}); err != nil {
 		return nil, err
 	}
@@ -317,7 +317,7 @@ func (t *accountEventHandler) Unsubscribe(market string) error {
 
 	if exist {
 		if err := t.withAuth(func() {
-			t.writechn <- newWebSocketMessage(ActionUnsubscribe, ChannelNameBook, market)
+			t.writechn <- newWebSocketMessage(actionUnsubscribe, channelNameBook, market)
 		}); err != nil {
 			return err
 		}
@@ -377,7 +377,7 @@ func (t *accountEventHandler) handleAuthMessage(bytes []byte) {
 func newWebSocketAuthMessage(apiKey string, apiSecret string, windowTimeMs uint64) WebSocketMessage {
 	timestamp := time.Now().UnixMilli()
 	return WebSocketMessage{
-		Action:    ActionAuthenticate.Value,
+		Action:    actionAuthenticate.Value,
 		Key:       apiKey,
 		Signature: createSignature(timestamp, apiSecret),
 		Timestamp: timestamp,
@@ -402,7 +402,7 @@ func (t *accountEventHandler) reconnect() {
 	for sub := range t.subs.IterBuffered() {
 		market := sub.Key
 		if err := t.withAuth(func() {
-			t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameAccount, market)
+			t.writechn <- newWebSocketMessage(actionSubscribe, channelNameAccount, market)
 		}); err != nil {
 			log.Logger().Error("Failed to reconnect the account websocket", "market", market)
 		}

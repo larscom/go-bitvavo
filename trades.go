@@ -61,8 +61,8 @@ func (t *TradesEvent) UnmarshalJSON(bytes []byte) error {
 	t.Market = market
 	t.Trade = Trade{
 		Id:        id,
-		Amount:    util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, ZERO),
-		Price:     util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, ZERO),
+		Amount:    util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, zerof),
+		Price:     util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, zerof),
 		Side:      side,
 		Timestamp: int64(timestamp),
 	}
@@ -87,7 +87,7 @@ func (t *tradesEventHandler) Subscribe(market string, buffSize uint64) (<-chan T
 		return nil, fmt.Errorf("subscription already active for market: %s", market)
 	}
 
-	t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameTrades, market)
+	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTrades, market)
 
 	chn := make(chan TradesEvent, buffSize)
 	t.subs.Set(market, chn)
@@ -99,7 +99,7 @@ func (t *tradesEventHandler) Unsubscribe(market string) error {
 	sub, exist := t.subs.Get(market)
 
 	if exist {
-		t.writechn <- newWebSocketMessage(ActionUnsubscribe, ChannelNameTrades, market)
+		t.writechn <- newWebSocketMessage(actionUnsubscribe, channelNameTrades, market)
 		close(sub)
 		t.subs.Remove(market)
 		return nil
@@ -136,6 +136,6 @@ func (t *tradesEventHandler) handleMessage(bytes []byte) {
 func (t *tradesEventHandler) reconnect() {
 	for sub := range t.subs.IterBuffered() {
 		market := sub.Key
-		t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameTrades, market)
+		t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTrades, market)
 	}
 }

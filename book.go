@@ -62,8 +62,8 @@ func (b *BookEvent) UnmarshalJSON(bytes []byte) error {
 		size := bidEvents[i].([]any)[1].(string)
 
 		bids[i] = Page{
-			Price: util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, ZERO),
-			Size:  util.IfOrElse(len(size) > 0, func() float64 { return util.MustFloat64(size) }, ZERO),
+			Price: util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, zerof),
+			Size:  util.IfOrElse(len(size) > 0, func() float64 { return util.MustFloat64(size) }, zerof),
 		}
 	}
 
@@ -74,8 +74,8 @@ func (b *BookEvent) UnmarshalJSON(bytes []byte) error {
 		size := askEvents[i].([]any)[1].(string)
 
 		asks[i] = Page{
-			Price: util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, ZERO),
-			Size:  util.IfOrElse(len(size) > 0, func() float64 { return util.MustFloat64(size) }, ZERO),
+			Price: util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, zerof),
+			Size:  util.IfOrElse(len(size) > 0, func() float64 { return util.MustFloat64(size) }, zerof),
 		}
 	}
 
@@ -107,7 +107,7 @@ func (t *bookEventHandler) Subscribe(market string, buffSize uint64) (<-chan Boo
 		return nil, fmt.Errorf("subscription already active for market: %s", market)
 	}
 
-	t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameBook, market)
+	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameBook, market)
 
 	chn := make(chan BookEvent, buffSize)
 	t.subs.Set(market, chn)
@@ -119,7 +119,7 @@ func (t *bookEventHandler) Unsubscribe(market string) error {
 	sub, exist := t.subs.Get(market)
 
 	if exist {
-		t.writechn <- newWebSocketMessage(ActionUnsubscribe, ChannelNameBook, market)
+		t.writechn <- newWebSocketMessage(actionUnsubscribe, channelNameBook, market)
 		close(sub)
 		t.subs.Remove(market)
 		return nil
@@ -156,6 +156,6 @@ func (t *bookEventHandler) handleMessage(bytes []byte) {
 func (t *bookEventHandler) reconnect() {
 	for sub := range t.subs.IterBuffered() {
 		market := sub.Key
-		t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameBook, market)
+		t.writechn <- newWebSocketMessage(actionSubscribe, channelNameBook, market)
 	}
 }

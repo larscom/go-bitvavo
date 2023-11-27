@@ -101,16 +101,16 @@ func (t *Ticker24hEvent) UnmarshalJSON(bytes []byte) error {
 	t.Event = event
 	t.Market = market
 	t.Ticker24h = Ticker24h{
-		Open:           util.IfOrElse(len(open) > 0, func() float64 { return util.MustFloat64(open) }, ZERO),
-		High:           util.IfOrElse(len(high) > 0, func() float64 { return util.MustFloat64(high) }, ZERO),
-		Low:            util.IfOrElse(len(low) > 0, func() float64 { return util.MustFloat64(low) }, ZERO),
-		Last:           util.IfOrElse(len(last) > 0, func() float64 { return util.MustFloat64(last) }, ZERO),
-		Volume:         util.IfOrElse(len(volume) > 0, func() float64 { return util.MustFloat64(volume) }, ZERO),
-		VolumeQuote:    util.IfOrElse(len(volumeQuote) > 0, func() float64 { return util.MustFloat64(volumeQuote) }, ZERO),
-		Bid:            util.IfOrElse(len(bid) > 0, func() float64 { return util.MustFloat64(bid) }, ZERO),
-		BidSize:        util.IfOrElse(len(bidSize) > 0, func() float64 { return util.MustFloat64(bidSize) }, ZERO),
-		Ask:            util.IfOrElse(len(ask) > 0, func() float64 { return util.MustFloat64(ask) }, ZERO),
-		AskSize:        util.IfOrElse(len(askSize) > 0, func() float64 { return util.MustFloat64(askSize) }, ZERO),
+		Open:           util.IfOrElse(len(open) > 0, func() float64 { return util.MustFloat64(open) }, zerof),
+		High:           util.IfOrElse(len(high) > 0, func() float64 { return util.MustFloat64(high) }, zerof),
+		Low:            util.IfOrElse(len(low) > 0, func() float64 { return util.MustFloat64(low) }, zerof),
+		Last:           util.IfOrElse(len(last) > 0, func() float64 { return util.MustFloat64(last) }, zerof),
+		Volume:         util.IfOrElse(len(volume) > 0, func() float64 { return util.MustFloat64(volume) }, zerof),
+		VolumeQuote:    util.IfOrElse(len(volumeQuote) > 0, func() float64 { return util.MustFloat64(volumeQuote) }, zerof),
+		Bid:            util.IfOrElse(len(bid) > 0, func() float64 { return util.MustFloat64(bid) }, zerof),
+		BidSize:        util.IfOrElse(len(bidSize) > 0, func() float64 { return util.MustFloat64(bidSize) }, zerof),
+		Ask:            util.IfOrElse(len(ask) > 0, func() float64 { return util.MustFloat64(ask) }, zerof),
+		AskSize:        util.IfOrElse(len(askSize) > 0, func() float64 { return util.MustFloat64(askSize) }, zerof),
 		Timestamp:      int64(timestamp),
 		StartTimestamp: int64(startTimestamp),
 		OpenTimestamp:  int64(openTimestamp),
@@ -137,7 +137,7 @@ func (t *ticker24hEventHandler) Subscribe(market string, buffSize uint64) (<-cha
 		return nil, fmt.Errorf("subscription already active for market: %s", market)
 	}
 
-	t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameTicker24h, market)
+	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTicker24h, market)
 
 	chn := make(chan Ticker24hEvent, buffSize)
 	t.subs.Set(market, chn)
@@ -149,7 +149,7 @@ func (t *ticker24hEventHandler) Unsubscribe(market string) error {
 	sub, exist := t.subs.Get(market)
 
 	if exist {
-		t.writechn <- newWebSocketMessage(ActionUnsubscribe, ChannelNameTicker24h, market)
+		t.writechn <- newWebSocketMessage(actionUnsubscribe, channelNameTicker24h, market)
 		close(sub)
 		t.subs.Remove(market)
 		return nil
@@ -186,6 +186,6 @@ func (t *ticker24hEventHandler) handleMessage(bytes []byte) {
 func (t *ticker24hEventHandler) reconnect() {
 	for sub := range t.subs.IterBuffered() {
 		market := sub.Key
-		t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameTicker24h, market)
+		t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTicker24h, market)
 	}
 }

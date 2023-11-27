@@ -87,7 +87,7 @@ func newCandleWebSocketMessage(action Action, market string, interval string) We
 		Action: action.Value,
 		Channels: []Channel{
 			{
-				Name:      ChannelNameCandles.Value,
+				Name:      channelNameCandles.Value,
 				Markets:   []string{market},
 				Intervals: []string{interval},
 			},
@@ -102,7 +102,7 @@ func (c *candlesEventHandler) Subscribe(market string, interval string, buffSize
 		return nil, fmt.Errorf("subscription already active for market: %s with interval: %s", market, interval)
 	}
 
-	c.writechn <- newCandleWebSocketMessage(ActionSubscribe, market, interval)
+	c.writechn <- newCandleWebSocketMessage(actionSubscribe, market, interval)
 
 	chn := make(chan CandlesEvent, buffSize)
 	c.subs.Set(key, chn)
@@ -115,7 +115,7 @@ func (c *candlesEventHandler) Unsubscribe(market string, interval string) error 
 	sub, exist := c.subs.Get(key)
 
 	if exist {
-		c.writechn <- newCandleWebSocketMessage(ActionUnsubscribe, market, interval)
+		c.writechn <- newCandleWebSocketMessage(actionUnsubscribe, market, interval)
 		close(sub)
 		c.subs.Remove(key)
 		return nil
@@ -157,7 +157,7 @@ func (c *candlesEventHandler) handleMessage(bytes []byte) {
 func (c *candlesEventHandler) reconnect() {
 	for sub := range c.subs.IterBuffered() {
 		market, interval := getMapKeyValue(sub.Key)
-		c.writechn <- newCandleWebSocketMessage(ActionSubscribe, market, interval)
+		c.writechn <- newCandleWebSocketMessage(actionSubscribe, market, interval)
 	}
 }
 

@@ -2,50 +2,41 @@ package bitvavo
 
 import "github.com/orsinium-labs/enum"
 
-const ZERO = float64(0)
+const zerof = float64(0)
 
 type WsEvent enum.Member[string]
 
 var (
-	WsEventSubscribed   = WsEvent{"subscribed"}
-	WsEventUnsubscribed = WsEvent{"unsubscribed"}
-	WsEventCandles      = WsEvent{"candle"}
-	WsEventTicker       = WsEvent{"ticker"}
-	WsEventTicker24h    = WsEvent{"ticker24h"}
-	WsEventTrades       = WsEvent{"trade"}
-	WsEventBook         = WsEvent{"book"}
-	WsEventAuth         = WsEvent{"authenticate"}
-	WsEventAccount      = WsEvent{"account"}
-	WsEventOrder        = WsEvent{"order"}
-	WsEventFill         = WsEvent{"fill"}
+	wsEventSubscribed   = WsEvent{"subscribed"}
+	wsEventUnsubscribed = WsEvent{"unsubscribed"}
+	wsEventCandles      = WsEvent{"candle"}
+	wsEventTicker       = WsEvent{"ticker"}
+	wsEventTicker24h    = WsEvent{"ticker24h"}
+	wsEventTrades       = WsEvent{"trade"}
+	wsEventBook         = WsEvent{"book"}
+	wsEventAuth         = WsEvent{"authenticate"}
+	wsEventOrder        = WsEvent{"order"}
+	wsEventFill         = WsEvent{"fill"}
 )
 
 type Action enum.Member[string]
 
 var (
-	ActionSubscribe    = Action{"subscribe"}
-	ActionUnsubscribe  = Action{"unsubscribe"}
-	ActionAuthenticate = Action{"authenticate"}
+	actionSubscribe    = Action{"subscribe"}
+	actionUnsubscribe  = Action{"unsubscribe"}
+	actionAuthenticate = Action{"authenticate"}
 )
 
 type ChannelName enum.Member[string]
 
 var (
-	ChannelNameCandles   = ChannelName{"candles"}
-	ChannelNameTicker    = ChannelName{"ticker"}
-	ChannelNameTicker24h = ChannelName{"ticker24h"}
-	ChannelNameTrades    = ChannelName{"trades"}
-	ChannelNameBook      = ChannelName{"book"}
-	ChannelNameAccount   = ChannelName{"account"}
+	channelNameCandles   = ChannelName{"candles"}
+	channelNameTicker    = ChannelName{"ticker"}
+	channelNameTicker24h = ChannelName{"ticker24h"}
+	channelNameTrades    = ChannelName{"trades"}
+	channelNameBook      = ChannelName{"book"}
+	channelNameAccount   = ChannelName{"account"}
 )
-
-type SubscribedEvent struct {
-	// Describes the returned event over the socket.
-	Event string `json:"event"`
-
-	// Subscriptions map[event][]markets
-	Subscriptions map[string][]string `json:"subscriptions"`
-}
 
 type AuthEvent struct {
 	// Describes the returned event over the socket.

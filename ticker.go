@@ -57,11 +57,11 @@ func (t *TickerEvent) UnmarshalJSON(data []byte) error {
 
 	t.Market = market
 	t.Ticker = Ticker{
-		BestBid:     util.IfOrElse(len(bestBid) > 0, func() float64 { return util.MustFloat64(bestBid) }, ZERO),
-		BestBidSize: util.IfOrElse(len(bestBidSize) > 0, func() float64 { return util.MustFloat64(bestBidSize) }, ZERO),
-		BestAsk:     util.IfOrElse(len(bestAsk) > 0, func() float64 { return util.MustFloat64(bestAsk) }, ZERO),
-		BestAskSize: util.IfOrElse(len(bestAskSize) > 0, func() float64 { return util.MustFloat64(bestAskSize) }, ZERO),
-		LastPrice:   util.IfOrElse(len(lastPrice) > 0, func() float64 { return util.MustFloat64(lastPrice) }, ZERO),
+		BestBid:     util.IfOrElse(len(bestBid) > 0, func() float64 { return util.MustFloat64(bestBid) }, zerof),
+		BestBidSize: util.IfOrElse(len(bestBidSize) > 0, func() float64 { return util.MustFloat64(bestBidSize) }, zerof),
+		BestAsk:     util.IfOrElse(len(bestAsk) > 0, func() float64 { return util.MustFloat64(bestAsk) }, zerof),
+		BestAskSize: util.IfOrElse(len(bestAskSize) > 0, func() float64 { return util.MustFloat64(bestAskSize) }, zerof),
+		LastPrice:   util.IfOrElse(len(lastPrice) > 0, func() float64 { return util.MustFloat64(lastPrice) }, zerof),
 	}
 
 	return nil
@@ -84,7 +84,7 @@ func (t *tickerEventHandler) Subscribe(market string, buffSize uint64) (<-chan T
 		return nil, fmt.Errorf("subscription already active for market: %s", market)
 	}
 
-	t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameTicker, market)
+	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTicker, market)
 
 	chn := make(chan TickerEvent, buffSize)
 	t.subs.Set(market, chn)
@@ -96,7 +96,7 @@ func (t *tickerEventHandler) Unsubscribe(market string) error {
 	sub, exist := t.subs.Get(market)
 
 	if exist {
-		t.writechn <- newWebSocketMessage(ActionUnsubscribe, ChannelNameTicker, market)
+		t.writechn <- newWebSocketMessage(actionUnsubscribe, channelNameTicker, market)
 		close(sub)
 		t.subs.Remove(market)
 		return nil
@@ -133,6 +133,6 @@ func (t *tickerEventHandler) handleMessage(bytes []byte) {
 func (t *tickerEventHandler) reconnect() {
 	for sub := range t.subs.IterBuffered() {
 		market := sub.Key
-		t.writechn <- newWebSocketMessage(ActionSubscribe, ChannelNameTicker, market)
+		t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTicker, market)
 	}
 }

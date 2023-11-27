@@ -30,7 +30,7 @@ type EventHandler[T any] interface {
 }
 
 type WebSocket interface {
-	// Close everything, including subscriptions, underlying websockets, gracefull shutdown...
+	// Close everything, including subscriptions, underlying websockets, graceful shutdown...
 	Close() error
 
 	// Candles event handler to handle candle events and subscriptions.
@@ -278,7 +278,7 @@ func (ws *webSocket) handlError(err *WebSocketErr) {
 	ws.logDebug("Handling incoming error", "err", err)
 
 	switch err.Action {
-	case ActionAuthenticate.Value:
+	case actionAuthenticate.Value:
 		log.Logger().Error("Failed to authenticate, wrong apiKey and/or apiSecret")
 	default:
 		log.Logger().Error("Could not handle error", "action", err.Action, "code", err.Code, "message", err.Message)
@@ -290,27 +290,27 @@ func (ws *webSocket) handleEvent(e *BaseEvent, bytes []byte) {
 
 	switch e.Event {
 	// public
-	case WsEventSubscribed.Value:
+	case wsEventSubscribed.Value:
 		ws.handleSubscribedEvent(bytes)
-	case WsEventUnsubscribed.Value:
+	case wsEventUnsubscribed.Value:
 		ws.handleUnsubscribedEvent(bytes)
-	case WsEventCandles.Value:
+	case wsEventCandles.Value:
 		ws.handleCandleEvent(bytes)
-	case WsEventTicker.Value:
+	case wsEventTicker.Value:
 		ws.handleTickerEvent(bytes)
-	case WsEventTicker24h.Value:
+	case wsEventTicker24h.Value:
 		ws.handleTicker24hEvent(bytes)
-	case WsEventTrades.Value:
+	case wsEventTrades.Value:
 		ws.handleTradesEvent(bytes)
-	case WsEventBook.Value:
+	case wsEventBook.Value:
 		ws.handleBookEvent(bytes)
 
 	// authenticated
-	case WsEventAuth.Value:
+	case wsEventAuth.Value:
 		ws.handleAuthEvent(bytes)
-	case WsEventOrder.Value:
+	case wsEventOrder.Value:
 		ws.handleOrderEvent(bytes)
-	case WsEventFill.Value:
+	case wsEventFill.Value:
 		ws.handleFillEvent(bytes)
 
 	default:

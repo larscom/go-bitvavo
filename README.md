@@ -1,6 +1,6 @@
 # Go Bitvavo
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/larscom/go-bitvavo)](https://goreportcard.com/report/github.com/larscom/go-bitvavo)
+[![Go Report Card](https://goreportcard.com/badge/github.com/larscom/go-bitvavo/v2)](https://goreportcard.com/report/github.com/larscom/go-bitvavo/v2)
 [![Go Reference](https://pkg.go.dev/badge/github.com/larscom/go-bitvavo.svg)](https://pkg.go.dev/github.com/larscom/go-bitvavo)
 
 > Go **thread safe** client library for Bitvavo v2 (https://docs.bitvavo.com)
@@ -10,7 +10,7 @@ Go Bitvavo is a **thread safe** client written in GO to interact with the Bitvav
 ## 📒 Features
 
 - [x] WebSockets
-      -- Read Only
+      -- Read only
 - [ ] REST (_soon_)
       -- Read / Write
 - [ ] ...
