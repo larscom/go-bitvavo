@@ -31,7 +31,7 @@ import "github.com/larscom/go-bitvavo/v2"
 
 By default, the websocket handler will try to reconnect to the websocket when the connection is lost, you can disable this behaviour in the options.
 
-For each subscription you can set the buffer size for the underlying channel. Buffer size of 0 means an unbuffered channel.
+For each subscription you can set the buffer size for the underlying channel.
 
 ### Public Subscriptions
 
@@ -39,7 +39,7 @@ Public subscriptions requires no authentication and can be used directly.
 
 #### Candles
 
-Subscribe to candle events for market: `ETH-EUR` with buffer size `0`
+Subscribe to candle events for market: `ETH-EUR`
 
 ```go
 func main() {
