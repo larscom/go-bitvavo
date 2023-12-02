@@ -1,8 +1,10 @@
-package bitvavo
+package wsc
 
 import (
 	"fmt"
 
+	"github.com/larscom/go-bitvavo/v2/constant"
+	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/log"
 
 	"github.com/goccy/go-json"
@@ -18,30 +20,13 @@ type TickerEvent struct {
 	Market string `json:"market"`
 
 	// The ticker containing the prices.
-	Ticker Ticker `json:"ticker"`
+	Ticker jsond.Ticker `json:"ticker"`
 }
 
-type Ticker struct {
-	// The price of the best (highest) bid offer available, only sent when either bestBid or bestBidSize has changed.
-	BestBid float64 `json:"bestBid"`
-
-	// The size of the best (highest) bid offer available, only sent when either bestBid or bestBidSize has changed.
-	BestBidSize float64 `json:"bestBidSize"`
-
-	// The price of the best (lowest) ask offer available, only sent when either bestAsk or bestAskSize has changed.
-	BestAsk float64 `json:"bestAsk"`
-
-	// The size of the best (lowest) ask offer available, only sent when either bestAsk or bestAskSize has changed.
-	BestAskSize float64 `json:"bestAskSize"`
-
-	// The last price for which a trade has occurred, only sent when lastPrice has changed.
-	LastPrice float64 `json:"lastPrice"`
-}
-
-func (t *TickerEvent) UnmarshalJSON(data []byte) error {
+func (t *TickerEvent) UnmarshalJSON(bytes []byte) error {
 	var tickerEvent map[string]string
 
-	err := json.Unmarshal(data, &tickerEvent)
+	err := json.Unmarshal(bytes, &tickerEvent)
 	if err != nil {
 		return err
 	}
@@ -56,12 +41,12 @@ func (t *TickerEvent) UnmarshalJSON(data []byte) error {
 	)
 
 	t.Market = market
-	t.Ticker = Ticker{
-		BestBid:     util.IfOrElse(len(bestBid) > 0, func() float64 { return util.MustFloat64(bestBid) }, zerof),
-		BestBidSize: util.IfOrElse(len(bestBidSize) > 0, func() float64 { return util.MustFloat64(bestBidSize) }, zerof),
-		BestAsk:     util.IfOrElse(len(bestAsk) > 0, func() float64 { return util.MustFloat64(bestAsk) }, zerof),
-		BestAskSize: util.IfOrElse(len(bestAskSize) > 0, func() float64 { return util.MustFloat64(bestAskSize) }, zerof),
-		LastPrice:   util.IfOrElse(len(lastPrice) > 0, func() float64 { return util.MustFloat64(lastPrice) }, zerof),
+	t.Ticker = jsond.Ticker{
+		BestBid:     util.IfOrElse(len(bestBid) > 0, func() float64 { return util.MustFloat64(bestBid) }, constant.ZEROF64),
+		BestBidSize: util.IfOrElse(len(bestBidSize) > 0, func() float64 { return util.MustFloat64(bestBidSize) }, constant.ZEROF64),
+		BestAsk:     util.IfOrElse(len(bestAsk) > 0, func() float64 { return util.MustFloat64(bestAsk) }, constant.ZEROF64),
+		BestAskSize: util.IfOrElse(len(bestAskSize) > 0, func() float64 { return util.MustFloat64(bestAskSize) }, constant.ZEROF64),
+		LastPrice:   util.IfOrElse(len(lastPrice) > 0, func() float64 { return util.MustFloat64(lastPrice) }, constant.ZEROF64),
 	}
 
 	return nil

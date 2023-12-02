@@ -1,8 +1,6 @@
-package bitvavo
+package wsc
 
 import "github.com/orsinium-labs/enum"
-
-const zerof = float64(0)
 
 type WsEvent enum.Member[string]
 
@@ -66,8 +64,6 @@ type WebSocketMessage struct {
 	Signature string `json:"signature,omitempty"`
 	// The current timestamp in milliseconds since 1 Jan 1970.
 	Timestamp int64 `json:"timestamp,omitempty"`
-	// The window that allows execution of your request in milliseconds since 1 Jan 1970. The default value is 10000 (10s) and maximum value is 60000 (60s).
-	Window uint64 `json:"window,omitempty"`
 }
 
 type Channel struct {

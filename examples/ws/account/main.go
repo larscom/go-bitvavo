@@ -6,6 +6,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/larscom/go-bitvavo/v2"
+	"github.com/larscom/go-bitvavo/v2/wsc"
 )
 
 func main() {
@@ -13,13 +14,13 @@ func main() {
 		log.Println("Starting without .env file")
 	}
 
-	ws, err := bitvavo.NewWebSocket()
+	key := os.Getenv("API_KEY")
+	secret := os.Getenv("API_SECRET")
+
+	ws, err := bitvavo.NewWsClient(wsc.WithDebug(false))
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	key := os.Getenv("API_KEY")
-	secret := os.Getenv("API_SECRET")
 
 	account, err := ws.Account(key, secret).Subscribe("ETH-EUR")
 	if err != nil {

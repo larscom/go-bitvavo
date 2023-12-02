@@ -1,8 +1,10 @@
-package bitvavo
+package wsc
 
 import (
 	"fmt"
 
+	"github.com/larscom/go-bitvavo/v2/constant"
+	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/log"
 
 	"github.com/goccy/go-json"
@@ -18,25 +20,7 @@ type TradesEvent struct {
 	Market string `json:"market"`
 
 	// The trade containing the price, side etc.
-	Trade Trade `json:"trade"`
-}
-
-type Trade struct {
-	// The trade ID of the returned trade (UUID).
-	Id string `json:"id"`
-
-	// The amount in base currency for which the trade has been made.
-	Amount float64 `json:"amount"`
-
-	// The price in quote currency for which the trade has been made.
-	Price float64 `json:"price"`
-
-	// The side for the taker.
-	// Enum: "buy" | "sell"
-	Side string `json:"side"`
-
-	// Timestamp in unix milliseconds.
-	Timestamp int64 `json:"timestamp"`
+	Trade jsond.Trade `json:"trade"`
 }
 
 func (t *TradesEvent) UnmarshalJSON(bytes []byte) error {
@@ -59,10 +43,10 @@ func (t *TradesEvent) UnmarshalJSON(bytes []byte) error {
 
 	t.Event = event
 	t.Market = market
-	t.Trade = Trade{
+	t.Trade = jsond.Trade{
 		Id:        id,
-		Amount:    util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, zerof),
-		Price:     util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, zerof),
+		Amount:    util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, constant.ZEROF64),
+		Price:     util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, constant.ZEROF64),
 		Side:      side,
 		Timestamp: int64(timestamp),
 	}

@@ -1,8 +1,10 @@
-package bitvavo
+package wsc
 
 import (
 	"fmt"
 
+	"github.com/larscom/go-bitvavo/v2/constant"
+	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/log"
 
 	"github.com/goccy/go-json"
@@ -18,28 +20,7 @@ type BookEvent struct {
 	Market string `json:"market"`
 
 	// The book containing the bids and asks.
-	Book Book `json:"book"`
-}
-
-type Page struct {
-	// Bid / ask price.
-	Price float64 `json:"price"`
-
-	//  Size of 0 means orders are no longer present at that price level, otherwise the returned size is the new total size on that price level.
-	Size float64 `json:"size"`
-}
-
-type Book struct {
-	// Integer which is increased by one for every update to the book. Useful for synchronizing. Resets to zero after restarting the matching engine.
-	Nonce int64 `json:"nonce"`
-
-	// Slice with all bids in the format [price, size], where an size of 0 means orders are no longer present at that price level,
-	// otherwise the returned size is the new total size on that price level.
-	Bids []Page `json:"bids"`
-
-	// Slice with all asks in the format [price, size], where an size of 0 means orders are no longer present at that price level,
-	// otherwise the returned size is the new total size on that price level.
-	Asks []Page `json:"asks"`
+	Book jsond.Book `json:"book"`
 }
 
 func (b *BookEvent) UnmarshalJSON(bytes []byte) error {
@@ -56,32 +37,32 @@ func (b *BookEvent) UnmarshalJSON(bytes []byte) error {
 	)
 
 	bidEvents := bookEvent["bids"].([]any)
-	bids := make([]Page, len(bidEvents))
+	bids := make([]jsond.Page, len(bidEvents))
 	for i := 0; i < len(bidEvents); i++ {
 		price := bidEvents[i].([]any)[0].(string)
 		size := bidEvents[i].([]any)[1].(string)
 
-		bids[i] = Page{
-			Price: util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, zerof),
-			Size:  util.IfOrElse(len(size) > 0, func() float64 { return util.MustFloat64(size) }, zerof),
+		bids[i] = jsond.Page{
+			Price: util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, constant.ZEROF64),
+			Size:  util.IfOrElse(len(size) > 0, func() float64 { return util.MustFloat64(size) }, constant.ZEROF64),
 		}
 	}
 
 	askEvents := bookEvent["asks"].([]any)
-	asks := make([]Page, len(askEvents))
+	asks := make([]jsond.Page, len(askEvents))
 	for i := 0; i < len(askEvents); i++ {
 		price := askEvents[i].([]any)[0].(string)
 		size := askEvents[i].([]any)[1].(string)
 
-		asks[i] = Page{
-			Price: util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, zerof),
-			Size:  util.IfOrElse(len(size) > 0, func() float64 { return util.MustFloat64(size) }, zerof),
+		asks[i] = jsond.Page{
+			Price: util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, constant.ZEROF64),
+			Size:  util.IfOrElse(len(size) > 0, func() float64 { return util.MustFloat64(size) }, constant.ZEROF64),
 		}
 	}
 
 	b.Event = event
 	b.Market = market
-	b.Book = Book{
+	b.Book = jsond.Book{
 		Nonce: int64(nonce),
 		Bids:  bids,
 		Asks:  asks,

@@ -7,17 +7,17 @@ import (
 )
 
 func main() {
-	ws, err := bitvavo.NewWebSocket()
+	ws, err := bitvavo.NewWsClient()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	bookchn, err := ws.Book().Subscribe("ETH-EUR", 0)
+	tradeschn, err := ws.Trades().Subscribe("ETH-EUR", 0)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for bookEvent := range bookchn {
-		log.Println(bookEvent)
+	for tradesEvent := range tradeschn {
+		log.Println(tradesEvent)
 	}
 }

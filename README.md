@@ -5,15 +5,15 @@
 
 > Go **thread safe** client library for Bitvavo v2 (https://docs.bitvavo.com)
 
-Go Bitvavo is a **thread safe** client written in GO to interact with the Bitvavo platform. For _now_, only websockets (read only) are supported, so you can listen to all events that occur on the bitvavo platform (e.g: candles, ticker, orders, fills, etc)
+Go Bitvavo is a **thread safe** client written in GO to interact with the Bitvavo platform. For _now_, mostly websockets (read only) are supported, so you can listen to all events that occur on the bitvavo platform (e.g: candles, ticker, orders, fills, etc)
+
+The HTTP client (read / write) is limited at the moment, it'll will grow with more functionality over time.
 
 ## 📒 Features
 
-- [x] WebSockets
-      -- Read only
-- [ ] REST (_soon_)
-      -- Read / Write
-- [ ] ...
+- [x] WebSocket Client -- Read only (100%)	
+- [ ] Http Client (_soon_) -- Read / Write
+  - Not complete yet, will grow with more functionality over time.
 
 ## 🚀 Installation
 
@@ -43,7 +43,7 @@ Subscribe to candle events for market: `ETH-EUR` with buffer size `0`
 
 ```go
 func main() {
-	ws, err := bitvavo.NewWebSocket()
+	ws, err := bitvavo.NewWsClient()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,7 +88,7 @@ Subscribe to book events for market: `ETH-EUR` with buffer size `0`
 
 ```go
 func main() {
-	ws, err := bitvavo.NewWebSocket()
+	ws, err := bitvavo.NewWsClient()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -130,7 +130,7 @@ Subscribe to ticker events for market: `ETH-EUR` with buffer size `0`
 
 ```go
 func main() {
-	ws, err := bitvavo.NewWebSocket()
+	ws, err := bitvavo.NewWsClient()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -172,7 +172,7 @@ Subscribe to ticker24h events for market: `ETH-EUR` with buffer size `0`
 
 ```go
 func main() {
-	ws, err := bitvavo.NewWebSocket()
+	ws, err := bitvavo.NewWsClient()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -214,7 +214,7 @@ Subscribe to trades events for market: `ETH-EUR` with buffer size `0`
 
 ```go
 func main() {
-	ws, err := bitvavo.NewWebSocket()
+	ws, err := bitvavo.NewWsClient()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -260,7 +260,7 @@ Subscribe to order events for market: `ETH-EUR` with buffer size `50`
 
 ```go
 func main() {
-	ws, err := bitvavo.NewWebSocket()
+	ws, err := bitvavo.NewWsClient()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -305,7 +305,7 @@ Subscribe to fill events for market: `ETH-EUR` with buffer size `50`
 
 ```go
 func main() {
-	ws, err := bitvavo.NewWebSocket()
+	ws, err := bitvavo.NewWsClient()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -349,7 +349,7 @@ type FillEvent struct {
 You can enable debug logging by providing an option to the Websocket constructor
 
 ```go
-   ws, err := bitvavo.NewWebSocket(bitvavo.WithDebug(true))
+   ws, err := bitvavo.NewWsClient(wsc.WithDebug(true))
 ```
 
 ### Auto Reconnect
@@ -357,5 +357,5 @@ You can enable debug logging by providing an option to the Websocket constructor
 You can disable auto reconnecting to the websocket by providing an option to the Websocket constructor
 
 ```go
-   ws, err := bitvavo.NewWebSocket(bitvavo.WithAutoReconnect(false))
+   ws, err := bitvavo.NewWsClient(wsc.WithAutoReconnect(false))
 ```

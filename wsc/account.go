@@ -1,94 +1,17 @@
-package bitvavo
+package wsc
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/larscom/go-bitvavo/v2/constant"
+	"github.com/larscom/go-bitvavo/v2/crypto"
+	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/log"
 	"github.com/larscom/go-bitvavo/v2/util"
 	"github.com/smallnest/safemap"
 )
-
-type Order struct {
-	Guid string `json:"guid"`
-
-	// The order id of the returned order.
-	OrderId string `json:"orderId"`
-
-	// Is a timestamp in milliseconds since 1 Jan 1970.
-	Created int64 `json:"created"`
-
-	// Is a timestamp in milliseconds since 1 Jan 1970.
-	Updated int64 `json:"updated"`
-
-	// The current status of the order.
-	// Enum: "new" | "awaitingTrigger" | "canceled" | "canceledAuction" | "canceledSelfTradePrevention" | "canceledIOC" | "canceledFOK" | "canceledMarketProtection" | "canceledPostOnly" | "filled" | "partiallyFilled" | "expired" | "rejected"
-	Status string `json:"status"`
-
-	// Side
-	// Enum: "buy" | "sell"
-	Side string `json:"side"`
-
-	// OrderType
-	// Enum: "limit" | "market"
-	OrderType string `json:"orderType"`
-
-	// Original amount.
-	Amount float64 `json:"amount"`
-
-	// Amount remaining (lower than 'amount' after fills).
-	AmountRemaining float64 `json:"amountRemaining"`
-
-	// The price of the order.
-	Price float64 `json:"price"`
-
-	// Amount of 'onHoldCurrency' that is reserved for this order. This is released when orders are canceled.
-	OnHold float64 `json:"onHold"`
-
-	// The currency placed on hold is the quote currency for sell orders and base currency for buy orders.
-	OnHoldCurrency string `json:"onHoldCurrency"`
-
-	// Only for stop orders: The current price used in the trigger. This is based on the triggerAmount and triggerType.
-	TriggerPrice float64 `json:"triggerPrice"`
-
-	// Only for stop orders: The value used for the triggerType to determine the triggerPrice.
-	TriggerAmount float64 `json:"triggerAmount"`
-
-	// Only for stop orders.
-	// Enum: "price"
-	TriggerType string `json:"triggerType"`
-
-	// Only for stop orders: The reference price used for stop orders.
-	// Enum: "lastTrade" | "bestBid" | "bestAsk" | "midPrice"
-	TriggerReference string `json:"triggerReference"`
-
-	// Only for limit orders: Determines how long orders remain active.
-	// Possible values: Good-Til-Canceled (GTC), Immediate-Or-Cancel (IOC), Fill-Or-Kill (FOK).
-	// GTC orders will remain on the order book until they are filled or canceled.
-	// IOC orders will fill against existing orders, but will cancel any remaining amount after that.
-	// FOK orders will fill against existing orders in its entirety, or will be canceled (if the entire order cannot be filled).
-	// Enum: "GTC" | "IOC" | "FOK"
-	TimeInForce string `json:"timeInForce"`
-
-	// Default: false
-	PostOnly bool `json:"postOnly"`
-
-	// Self trading is not allowed on Bitvavo. Multiple options are available to prevent this from happening.
-	// The default ‘decrementAndCancel’ decrements both orders by the amount that would have been filled, which in turn cancels the smallest of the two orders.
-	// ‘cancelOldest’ will cancel the entire older order and places the new order.
-	// ‘cancelNewest’ will cancel the order that is submitted.
-	// ‘cancelBoth’ will cancel both the current and the old order.
-	// Default: "decrementAndCancel"
-	// Enum: "decrementAndCancel" | "cancelOldest" | "cancelNewest" | "cancelBoth"
-	SelfTradePrevention string `json:"selfTradePrevention"`
-
-	// Whether this order is visible on the order book.
-	Visible bool `json:"visible"`
-}
 
 type OrderEvent struct {
 	// Describes the returned event over the socket.
@@ -98,12 +21,12 @@ type OrderEvent struct {
 	Market string `json:"market"`
 
 	// The order itself.
-	Order Order `json:"order"`
+	Order jsond.Order `json:"order"`
 }
 
-func (o *OrderEvent) UnmarshalJSON(data []byte) error {
+func (o *OrderEvent) UnmarshalJSON(bytes []byte) error {
 	var orderEvent map[string]any
-	err := json.Unmarshal(data, &orderEvent)
+	err := json.Unmarshal(bytes, &orderEvent)
 	if err != nil {
 		return err
 	}
@@ -137,7 +60,7 @@ func (o *OrderEvent) UnmarshalJSON(data []byte) error {
 
 	o.Market = market
 	o.Event = event
-	o.Order = Order{
+	o.Order = jsond.Order{
 		Guid:                guid,
 		OrderId:             orderId,
 		Created:             int64(created),
@@ -145,13 +68,13 @@ func (o *OrderEvent) UnmarshalJSON(data []byte) error {
 		Status:              status,
 		Side:                side,
 		OrderType:           orderType,
-		Amount:              util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, zerof),
-		AmountRemaining:     util.IfOrElse(len(amountRemaining) > 0, func() float64 { return util.MustFloat64(amountRemaining) }, zerof),
-		Price:               util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, zerof),
-		OnHold:              util.IfOrElse(len(onHold) > 0, func() float64 { return util.MustFloat64(onHold) }, zerof),
+		Amount:              util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, constant.ZEROF64),
+		AmountRemaining:     util.IfOrElse(len(amountRemaining) > 0, func() float64 { return util.MustFloat64(amountRemaining) }, constant.ZEROF64),
+		Price:               util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, constant.ZEROF64),
+		OnHold:              util.IfOrElse(len(onHold) > 0, func() float64 { return util.MustFloat64(onHold) }, constant.ZEROF64),
 		OnHoldCurrency:      onHoldCurrency,
-		TriggerPrice:        util.IfOrElse(len(triggerPrice) > 0, func() float64 { return util.MustFloat64(triggerPrice) }, zerof),
-		TriggerAmount:       util.IfOrElse(len(triggerAmount) > 0, func() float64 { return util.MustFloat64(triggerAmount) }, zerof),
+		TriggerPrice:        util.IfOrElse(len(triggerPrice) > 0, func() float64 { return util.MustFloat64(triggerPrice) }, constant.ZEROF64),
+		TriggerAmount:       util.IfOrElse(len(triggerAmount) > 0, func() float64 { return util.MustFloat64(triggerAmount) }, constant.ZEROF64),
 		TriggerType:         triggerType,
 		TriggerReference:    triggerReference,
 		TimeInForce:         timeInForce,
@@ -163,40 +86,18 @@ func (o *OrderEvent) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type Fill struct {
-	// The id of the order on which has been filled
-	OrderId string `json:"orderId"`
-	// The id of the returned fill
-	FillId string `json:"fillId"`
-	// The current timestamp in milliseconds since 1 Jan 1970
-	Timestamp int64 `json:"timestamp"`
-	// The amount in base currency for which the trade has been made
-	Amount float64 `json:"amount"`
-	// The side for the taker
-	// Enum: "buy" | "sell"
-	Side string `json:"side"`
-	// The price in quote currency for which the trade has been made
-	Price float64 `json:"price"`
-	// True for takers, false for makers
-	Taker bool `json:"taker"`
-	// The amount of fee that has been paid. Value is negative for rebates. Only available if settled is true
-	Fee float64 `json:"fee"`
-	// Currency in which the fee has been paid. Only available if settled is true
-	FeeCurrency string `json:"feeCurrency"`
-}
-
 type FillEvent struct {
 	// Describes the returned event over the socket
 	Event string `json:"event"`
 	// The market which was requested in the subscription
 	Market string `json:"market"`
 	// The fill itself
-	Fill Fill `json:"fill"`
+	Fill jsond.Fill `json:"fill"`
 }
 
-func (f *FillEvent) UnmarshalJSON(data []byte) error {
+func (f *FillEvent) UnmarshalJSON(bytes []byte) error {
 	var fillEvent map[string]any
-	err := json.Unmarshal(data, &fillEvent)
+	err := json.Unmarshal(bytes, &fillEvent)
 	if err != nil {
 		return err
 	}
@@ -219,15 +120,15 @@ func (f *FillEvent) UnmarshalJSON(data []byte) error {
 
 	f.Market = market
 	f.Event = event
-	f.Fill = Fill{
+	f.Fill = jsond.Fill{
 		OrderId:     orderId,
 		FillId:      fillId,
 		Timestamp:   int64(timestamp),
-		Amount:      util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, zerof),
+		Amount:      util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, constant.ZEROF64),
 		Side:        side,
-		Price:       util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, zerof),
+		Price:       util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, constant.ZEROF64),
 		Taker:       taker,
-		Fee:         util.IfOrElse(len(fee) > 0, func() float64 { return util.MustFloat64(fee) }, zerof),
+		Fee:         util.IfOrElse(len(fee) > 0, func() float64 { return util.MustFloat64(fee) }, constant.ZEROF64),
 		FeeCurrency: feeCurrency,
 	}
 
@@ -275,21 +176,19 @@ type AccountEventHandler interface {
 type accountEventHandler struct {
 	apiKey        string
 	apiSecret     string
-	windowTimeMs  uint64
 	authenticated bool
 	authchn       chan bool
 	writechn      chan<- WebSocketMessage
 	subs          *safemap.SafeMap[string, *accountSub]
 }
 
-func newAccountEventHandler(apiKey string, apiSecret string, windowTimeMs uint64, writechn chan<- WebSocketMessage) *accountEventHandler {
+func newAccountEventHandler(apiKey string, apiSecret string, writechn chan<- WebSocketMessage) *accountEventHandler {
 	return &accountEventHandler{
-		apiKey:       apiKey,
-		apiSecret:    apiSecret,
-		windowTimeMs: windowTimeMs,
-		writechn:     writechn,
-		authchn:      make(chan bool),
-		subs:         safemap.New[string, *accountSub](),
+		apiKey:    apiKey,
+		apiSecret: apiSecret,
+		writechn:  writechn,
+		authchn:   make(chan bool),
+		subs:      safemap.New[string, *accountSub](),
 	}
 }
 
@@ -374,25 +273,18 @@ func (t *accountEventHandler) handleAuthMessage(bytes []byte) {
 	}
 }
 
-func newWebSocketAuthMessage(apiKey string, apiSecret string, windowTimeMs uint64) WebSocketMessage {
+func newWebSocketAuthMessage(apiKey string, apiSecret string) WebSocketMessage {
 	timestamp := time.Now().UnixMilli()
 	return WebSocketMessage{
 		Action:    actionAuthenticate.Value,
 		Key:       apiKey,
-		Signature: createSignature(timestamp, apiSecret),
+		Signature: crypto.CreateSignature("GET", "/websocket", nil, timestamp, apiSecret),
 		Timestamp: timestamp,
-		Window:    windowTimeMs,
 	}
 }
 
-func createSignature(timestamp int64, apiSecret string) string {
-	hash := hmac.New(sha256.New, []byte(apiSecret))
-	hash.Write([]byte(fmt.Sprintf("%dGET/v2/websocket", timestamp)))
-	return hex.EncodeToString(hash.Sum(nil))
-}
-
 func (t *accountEventHandler) authenticate() {
-	t.writechn <- newWebSocketAuthMessage(t.apiKey, t.apiSecret, t.windowTimeMs)
+	t.writechn <- newWebSocketAuthMessage(t.apiKey, t.apiSecret)
 	t.authenticated = <-t.authchn
 }
 

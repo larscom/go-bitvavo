@@ -1,21 +1,22 @@
-candles:
-	go run ./examples/candles/main.go
-book:
-	go run ./examples/book/main.go
+# ws
 ticker:
-	go run ./examples/ticker/main.go	
+	go run ./examples/ws/ticker/main.go	
+candles:
+	go run ./examples/ws/candles/main.go
+book:
+	go run ./examples/ws/book/main.go
 ticker24h:
-	go run ./examples/ticker24h/main.go		
+	go run ./examples/ws/ticker24h/main.go		
 trades:
-	go run ./examples/trades/main.go		
+	go run ./examples/ws/trades/main.go		
 account:
-	go run ./examples/account/main.go
+	go run ./examples/ws/account/main.go
+
+# http
+time:
+	go run ./examples/http/time/main.go	
+	
 build:
-	go build -o ./bin/candles ./examples/candles/main.go
-	go build -o ./bin/book ./examples/book/main.go
-	go build -o ./bin/ticker ./examples/ticker/main.go
-	go build -o ./bin/ticker24h ./examples/ticker24h/main.go
-	go build -o ./bin/trades ./examples/trades/main.go
-	go build -o ./bin/account ./examples/account/main.go
+	go build -o ./bin/bitvavo ./bitvavo.go
 test:
 	go test -v ./.../ --race

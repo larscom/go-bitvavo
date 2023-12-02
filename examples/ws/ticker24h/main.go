@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	ws, err := bitvavo.NewWebSocket()
+	ws, err := bitvavo.NewWsClient()
 	if err != nil {
 		log.Fatal(err)
 	}
