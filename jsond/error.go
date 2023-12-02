@@ -1,6 +1,10 @@
 package jsond
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/larscom/go-bitvavo/v2/util"
+)
 
 type BitvavoErr struct {
 	Code    int    `json:"errorCode"`
@@ -9,5 +13,6 @@ type BitvavoErr struct {
 }
 
 func (b *BitvavoErr) Error() string {
-	return fmt.Sprintf("Error %d: %s. Action: %s", b.Code, b.Message, b.Action)
+	msg := fmt.Sprintf("code %d: %s", b.Code, b.Message)
+	return fmt.Sprint(util.IfOrElse(len(b.Action) > 0, func() string { return fmt.Sprintf("%s action: %s", msg, b.Action) }, msg))
 }
