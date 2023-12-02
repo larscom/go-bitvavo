@@ -42,8 +42,8 @@ func (b *BookEvent) UnmarshalJSON(bytes []byte) error {
 		size := bidEvents[i].([]any)[1].(string)
 
 		bids[i] = jsond.Page{
-			Price: util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, float64(0)),
-			Size:  util.IfOrElse(len(size) > 0, func() float64 { return util.MustFloat64(size) }, float64(0)),
+			Price: util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, 0),
+			Size:  util.IfOrElse(len(size) > 0, func() float64 { return util.MustFloat64(size) }, 0),
 		}
 	}
 
@@ -54,8 +54,8 @@ func (b *BookEvent) UnmarshalJSON(bytes []byte) error {
 		size := askEvents[i].([]any)[1].(string)
 
 		asks[i] = jsond.Page{
-			Price: util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, float64(0)),
-			Size:  util.IfOrElse(len(size) > 0, func() float64 { return util.MustFloat64(size) }, float64(0)),
+			Price: util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, 0),
+			Size:  util.IfOrElse(len(size) > 0, func() float64 { return util.MustFloat64(size) }, 0),
 		}
 	}
 

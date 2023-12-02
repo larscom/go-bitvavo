@@ -34,9 +34,9 @@ func (f *Fee) UnmarshalJSON(bytes []byte) error {
 		volume = j["volume"]
 	)
 
-	f.Taker = util.IfOrElse(len(taker) > 0, func() float64 { return util.MustFloat64(taker) }, float64(0))
-	f.Maker = util.IfOrElse(len(maker) > 0, func() float64 { return util.MustFloat64(maker) }, float64(0))
-	f.Volume = util.IfOrElse(len(volume) > 0, func() float64 { return util.MustFloat64(volume) }, float64(0))
+	f.Taker = util.IfOrElse(len(taker) > 0, func() float64 { return util.MustFloat64(taker) }, 0)
+	f.Maker = util.IfOrElse(len(maker) > 0, func() float64 { return util.MustFloat64(maker) }, 0)
+	f.Volume = util.IfOrElse(len(volume) > 0, func() float64 { return util.MustFloat64(volume) }, 0)
 
 	return nil
 }

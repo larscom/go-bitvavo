@@ -44,8 +44,8 @@ func (t *TradesEvent) UnmarshalJSON(bytes []byte) error {
 	t.Market = market
 	t.Trade = jsond.Trade{
 		Id:        id,
-		Amount:    util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, float64(0)),
-		Price:     util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, float64(0)),
+		Amount:    util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, 0),
+		Price:     util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, 0),
 		Side:      side,
 		Timestamp: int64(timestamp),
 	}
