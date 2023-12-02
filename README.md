@@ -39,7 +39,7 @@ Public subscriptions requires no authentication and can be used directly.
 
 #### Candles
 
-Subscribe to candle events for market: `ETH-EUR`
+Subscribe to candle events for market: `ETH-EUR` with an interval of `5m`
 
 ```go
 func main() {
@@ -48,7 +48,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	chn, err := ws.Candles().Subscribe("ETH-EUR", "5m", 0)
+	chn, err := ws.Candles().Subscribe("ETH-EUR", "5m")
 	if err != nil {
 		log.Fatal(err)
 	}
