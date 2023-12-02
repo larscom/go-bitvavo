@@ -3,7 +3,6 @@ package jsond
 import (
 	"github.com/goccy/go-json"
 
-	"github.com/larscom/go-bitvavo/v2/constant"
 	"github.com/larscom/go-bitvavo/v2/util"
 )
 
@@ -33,8 +32,8 @@ func (b *Balance) UnmarshalJSON(bytes []byte) error {
 	)
 
 	b.Symbol = symbol
-	b.Available = util.IfOrElse(len(available) > 0, func() float64 { return util.MustFloat64(available) }, constant.ZEROF64)
-	b.InOrder = util.IfOrElse(len(inOrder) > 0, func() float64 { return util.MustFloat64(inOrder) }, constant.ZEROF64)
+	b.Available = util.IfOrElse(len(available) > 0, func() float64 { return util.MustFloat64(available) }, float64(0))
+	b.InOrder = util.IfOrElse(len(inOrder) > 0, func() float64 { return util.MustFloat64(inOrder) }, float64(0))
 
 	return nil
 }

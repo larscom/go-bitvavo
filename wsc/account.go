@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
-	"github.com/larscom/go-bitvavo/v2/constant"
 	"github.com/larscom/go-bitvavo/v2/crypto"
 	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/log"
@@ -68,13 +67,13 @@ func (o *OrderEvent) UnmarshalJSON(bytes []byte) error {
 		Status:              status,
 		Side:                side,
 		OrderType:           orderType,
-		Amount:              util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, constant.ZEROF64),
-		AmountRemaining:     util.IfOrElse(len(amountRemaining) > 0, func() float64 { return util.MustFloat64(amountRemaining) }, constant.ZEROF64),
-		Price:               util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, constant.ZEROF64),
-		OnHold:              util.IfOrElse(len(onHold) > 0, func() float64 { return util.MustFloat64(onHold) }, constant.ZEROF64),
+		Amount:              util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, float64(0)),
+		AmountRemaining:     util.IfOrElse(len(amountRemaining) > 0, func() float64 { return util.MustFloat64(amountRemaining) }, float64(0)),
+		Price:               util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, float64(0)),
+		OnHold:              util.IfOrElse(len(onHold) > 0, func() float64 { return util.MustFloat64(onHold) }, float64(0)),
 		OnHoldCurrency:      onHoldCurrency,
-		TriggerPrice:        util.IfOrElse(len(triggerPrice) > 0, func() float64 { return util.MustFloat64(triggerPrice) }, constant.ZEROF64),
-		TriggerAmount:       util.IfOrElse(len(triggerAmount) > 0, func() float64 { return util.MustFloat64(triggerAmount) }, constant.ZEROF64),
+		TriggerPrice:        util.IfOrElse(len(triggerPrice) > 0, func() float64 { return util.MustFloat64(triggerPrice) }, float64(0)),
+		TriggerAmount:       util.IfOrElse(len(triggerAmount) > 0, func() float64 { return util.MustFloat64(triggerAmount) }, float64(0)),
 		TriggerType:         triggerType,
 		TriggerReference:    triggerReference,
 		TimeInForce:         timeInForce,
@@ -124,11 +123,11 @@ func (f *FillEvent) UnmarshalJSON(bytes []byte) error {
 		OrderId:     orderId,
 		FillId:      fillId,
 		Timestamp:   int64(timestamp),
-		Amount:      util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, constant.ZEROF64),
+		Amount:      util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, float64(0)),
 		Side:        side,
-		Price:       util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, constant.ZEROF64),
+		Price:       util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, float64(0)),
 		Taker:       taker,
-		Fee:         util.IfOrElse(len(fee) > 0, func() float64 { return util.MustFloat64(fee) }, constant.ZEROF64),
+		Fee:         util.IfOrElse(len(fee) > 0, func() float64 { return util.MustFloat64(fee) }, float64(0)),
 		FeeCurrency: feeCurrency,
 	}
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/larscom/go-bitvavo/v2/crypto"
+	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/util"
 )
 
@@ -78,9 +79,17 @@ func httpDo[T any](
 		}
 	}
 
-	if response.StatusCode != http.StatusOK {
-		bytes, _ := io.ReadAll(response.Body)
-		return data, fmt.Errorf("did not get OK response, code=%d, body=%s", response.StatusCode, string(bytes))
+	if response.StatusCode > http.StatusIMUsed {
+		bytes, err := io.ReadAll(response.Body)
+		if err != nil {
+			return data, err
+		}
+
+		var apiError *jsond.BitvavoErr
+		if err := json.Unmarshal(bytes, &apiError); err != nil {
+			return data, fmt.Errorf("did not get OK response, code=%d, body=%s", response.StatusCode, string(bytes))
+		}
+		return data, apiError
 	}
 
 	defer response.Body.Close()

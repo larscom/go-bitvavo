@@ -3,7 +3,6 @@ package wsc
 import (
 	"fmt"
 
-	"github.com/larscom/go-bitvavo/v2/constant"
 	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/log"
 
@@ -42,11 +41,11 @@ func (t *TickerEvent) UnmarshalJSON(bytes []byte) error {
 
 	t.Market = market
 	t.Ticker = jsond.Ticker{
-		BestBid:     util.IfOrElse(len(bestBid) > 0, func() float64 { return util.MustFloat64(bestBid) }, constant.ZEROF64),
-		BestBidSize: util.IfOrElse(len(bestBidSize) > 0, func() float64 { return util.MustFloat64(bestBidSize) }, constant.ZEROF64),
-		BestAsk:     util.IfOrElse(len(bestAsk) > 0, func() float64 { return util.MustFloat64(bestAsk) }, constant.ZEROF64),
-		BestAskSize: util.IfOrElse(len(bestAskSize) > 0, func() float64 { return util.MustFloat64(bestAskSize) }, constant.ZEROF64),
-		LastPrice:   util.IfOrElse(len(lastPrice) > 0, func() float64 { return util.MustFloat64(lastPrice) }, constant.ZEROF64),
+		BestBid:     util.IfOrElse(len(bestBid) > 0, func() float64 { return util.MustFloat64(bestBid) }, float64(0)),
+		BestBidSize: util.IfOrElse(len(bestBidSize) > 0, func() float64 { return util.MustFloat64(bestBidSize) }, float64(0)),
+		BestAsk:     util.IfOrElse(len(bestAsk) > 0, func() float64 { return util.MustFloat64(bestAsk) }, float64(0)),
+		BestAskSize: util.IfOrElse(len(bestAskSize) > 0, func() float64 { return util.MustFloat64(bestAskSize) }, float64(0)),
+		LastPrice:   util.IfOrElse(len(lastPrice) > 0, func() float64 { return util.MustFloat64(lastPrice) }, float64(0)),
 	}
 
 	return nil

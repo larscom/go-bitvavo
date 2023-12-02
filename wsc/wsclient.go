@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/log"
 
 	"github.com/goccy/go-json"
@@ -274,7 +275,7 @@ func (ws *wsClient) handleMessage(bytes []byte) {
 
 	var baseEvent *BaseEvent
 	if err := json.Unmarshal(bytes, &baseEvent); err != nil {
-		var wsError *WebSocketErr
+		var wsError *jsond.BitvavoErr
 		if err := json.Unmarshal(bytes, &wsError); err != nil {
 			log.Logger().Error("Don't know how to handle this message", "message", string(bytes))
 		} else {
@@ -285,7 +286,7 @@ func (ws *wsClient) handleMessage(bytes []byte) {
 	}
 }
 
-func (ws *wsClient) handlError(err *WebSocketErr) {
+func (ws *wsClient) handlError(err *jsond.BitvavoErr) {
 	ws.logDebug("Handling incoming error", "err", err)
 
 	switch err.Action {

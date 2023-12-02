@@ -48,12 +48,6 @@ type BaseEvent struct {
 	Event string `json:"event"`
 }
 
-type WebSocketErr struct {
-	Action  string `json:"action"`
-	Code    int    `json:"errorCode"`
-	Message string `json:"error"`
-}
-
 type WebSocketMessage struct {
 	Action   string    `json:"action"`
 	Channels []Channel `json:"channels,omitempty"`

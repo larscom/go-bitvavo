@@ -3,7 +3,6 @@ package wsc
 import (
 	"fmt"
 
-	"github.com/larscom/go-bitvavo/v2/constant"
 	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/log"
 
@@ -45,8 +44,8 @@ func (t *TradesEvent) UnmarshalJSON(bytes []byte) error {
 	t.Market = market
 	t.Trade = jsond.Trade{
 		Id:        id,
-		Amount:    util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, constant.ZEROF64),
-		Price:     util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, constant.ZEROF64),
+		Amount:    util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, float64(0)),
+		Price:     util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, float64(0)),
 		Side:      side,
 		Timestamp: int64(timestamp),
 	}

@@ -3,7 +3,6 @@ package wsc
 import (
 	"fmt"
 
-	"github.com/larscom/go-bitvavo/v2/constant"
 	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/log"
 
@@ -60,16 +59,16 @@ func (t *Ticker24hEvent) UnmarshalJSON(bytes []byte) error {
 	t.Event = event
 	t.Market = market
 	t.Ticker24h = jsond.Ticker24h{
-		Open:           util.IfOrElse(len(open) > 0, func() float64 { return util.MustFloat64(open) }, constant.ZEROF64),
-		High:           util.IfOrElse(len(high) > 0, func() float64 { return util.MustFloat64(high) }, constant.ZEROF64),
-		Low:            util.IfOrElse(len(low) > 0, func() float64 { return util.MustFloat64(low) }, constant.ZEROF64),
-		Last:           util.IfOrElse(len(last) > 0, func() float64 { return util.MustFloat64(last) }, constant.ZEROF64),
-		Volume:         util.IfOrElse(len(volume) > 0, func() float64 { return util.MustFloat64(volume) }, constant.ZEROF64),
-		VolumeQuote:    util.IfOrElse(len(volumeQuote) > 0, func() float64 { return util.MustFloat64(volumeQuote) }, constant.ZEROF64),
-		Bid:            util.IfOrElse(len(bid) > 0, func() float64 { return util.MustFloat64(bid) }, constant.ZEROF64),
-		BidSize:        util.IfOrElse(len(bidSize) > 0, func() float64 { return util.MustFloat64(bidSize) }, constant.ZEROF64),
-		Ask:            util.IfOrElse(len(ask) > 0, func() float64 { return util.MustFloat64(ask) }, constant.ZEROF64),
-		AskSize:        util.IfOrElse(len(askSize) > 0, func() float64 { return util.MustFloat64(askSize) }, constant.ZEROF64),
+		Open:           util.IfOrElse(len(open) > 0, func() float64 { return util.MustFloat64(open) }, float64(0)),
+		High:           util.IfOrElse(len(high) > 0, func() float64 { return util.MustFloat64(high) }, float64(0)),
+		Low:            util.IfOrElse(len(low) > 0, func() float64 { return util.MustFloat64(low) }, float64(0)),
+		Last:           util.IfOrElse(len(last) > 0, func() float64 { return util.MustFloat64(last) }, float64(0)),
+		Volume:         util.IfOrElse(len(volume) > 0, func() float64 { return util.MustFloat64(volume) }, float64(0)),
+		VolumeQuote:    util.IfOrElse(len(volumeQuote) > 0, func() float64 { return util.MustFloat64(volumeQuote) }, float64(0)),
+		Bid:            util.IfOrElse(len(bid) > 0, func() float64 { return util.MustFloat64(bid) }, float64(0)),
+		BidSize:        util.IfOrElse(len(bidSize) > 0, func() float64 { return util.MustFloat64(bidSize) }, float64(0)),
+		Ask:            util.IfOrElse(len(ask) > 0, func() float64 { return util.MustFloat64(ask) }, float64(0)),
+		AskSize:        util.IfOrElse(len(askSize) > 0, func() float64 { return util.MustFloat64(askSize) }, float64(0)),
 		Timestamp:      int64(timestamp),
 		StartTimestamp: int64(startTimestamp),
 		OpenTimestamp:  int64(openTimestamp),
