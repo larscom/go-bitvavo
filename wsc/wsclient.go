@@ -19,8 +19,8 @@ const (
 
 type EventHandler[T any] interface {
 	// Subscribe to market.
-	// You can set the buffSize for the underlying channel, 0 for no buffer.
-	Subscribe(market string, buffSize uint64) (<-chan T, error)
+	// You can set the buffSize for the channel.
+	Subscribe(market string, buffSize ...uint64) (<-chan T, error)
 
 	// Unsubscribe from market.
 	Unsubscribe(market string) error

@@ -4,14 +4,17 @@ import (
 	"fmt"
 	"time"
 
+	neturl "net/url"
+
 	"github.com/larscom/go-bitvavo/v2/jsond"
 )
 
 type HttpClientAuth interface {
-	// GetBalance returns the balance on the account
-	GetBalance() ([]jsond.Balance, error)
+	// GetBalance returns the balance on the account.
+	// Optionally provide the symbol to filter for.
+	GetBalance(symbol ...string) ([]jsond.Balance, error)
 
-	// GetAccount returns trading volume and fees for account
+	// GetAccount returns trading volume and fees for account.
 	GetAccount() (jsond.Account, error)
 }
 
@@ -42,10 +45,28 @@ func newHttpClientAuth(
 	}
 }
 
-func (c *httpClientAuth) GetBalance() ([]jsond.Balance, error) {
-	return httpGet[[]jsond.Balance](fmt.Sprintf("%s/balance", httpUrl), c.updateRateLimit, c.updateRateLimitResetAt, c.logDebug, c.config)
+func (c *httpClientAuth) GetBalance(symbol ...string) ([]jsond.Balance, error) {
+	params := make(neturl.Values)
+	if len(symbol) > 0 {
+		params.Add("symbol", symbol[0])
+	}
+	return httpGet[[]jsond.Balance](
+		fmt.Sprintf("%s/balance", httpUrl),
+		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		c.config,
+	)
 }
 
 func (c *httpClientAuth) GetAccount() (jsond.Account, error) {
-	return httpGet[jsond.Account](fmt.Sprintf("%s/account", httpUrl), c.updateRateLimit, c.updateRateLimitResetAt, c.logDebug, c.config)
+	return httpGet[jsond.Account](
+		fmt.Sprintf("%s/account", httpUrl),
+		make(neturl.Values),
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		c.config,
+	)
 }

@@ -84,7 +84,7 @@ type CandlesEvent struct {
 
 #### Book
 
-Subscribe to book events for market: `ETH-EUR` with buffer size `0`
+Subscribe to book events for market: `ETH-EUR`
 
 ```go
 func main() {
@@ -93,7 +93,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	bookchn, err := ws.Book().Subscribe("ETH-EUR", 0)
+	bookchn, err := ws.Book().Subscribe("ETH-EUR")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -126,7 +126,7 @@ type BookEvent struct {
 
 #### Ticker
 
-Subscribe to ticker events for market: `ETH-EUR` with buffer size `0`
+Subscribe to ticker events for market: `ETH-EUR`
 
 ```go
 func main() {
@@ -135,7 +135,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	tickerchn, err := ws.Ticker().Subscribe("ETH-EUR", 0)
+	tickerchn, err := ws.Ticker().Subscribe("ETH-EUR")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -168,7 +168,7 @@ type TickerEvent struct {
 
 #### Ticker 24H
 
-Subscribe to ticker24h events for market: `ETH-EUR` with buffer size `0`
+Subscribe to ticker24h events for market: `ETH-EUR`
 
 ```go
 func main() {
@@ -177,7 +177,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ticker24hchn, err := ws.Ticker24h().Subscribe("ETH-EUR", 0)
+	ticker24hchn, err := ws.Ticker24h().Subscribe("ETH-EUR")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -210,7 +210,7 @@ type Ticker24hEvent struct {
 
 #### Trades
 
-Subscribe to trades events for market: `ETH-EUR` with buffer size `0`
+Subscribe to trades events for market: `ETH-EUR`
 
 ```go
 func main() {
@@ -219,7 +219,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	tradeschn, err := ws.Trades().Subscribe("ETH-EUR", 0)
+	tradeschn, err := ws.Trades().Subscribe("ETH-EUR")
 	if err != nil {
 		log.Fatal(err)
 	}

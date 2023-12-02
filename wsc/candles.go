@@ -6,6 +6,7 @@ import (
 
 	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/log"
+	"github.com/larscom/go-bitvavo/v2/util"
 
 	"github.com/goccy/go-json"
 	"github.com/smallnest/safemap"
@@ -27,8 +28,8 @@ type CandlesEvent struct {
 
 type CandlesEventHandler interface {
 	// Subscribe to market with interval.
-	// You can set the buffSize for this channel, 0 for no buffer
-	Subscribe(market string, interval string, buffSize uint64) (<-chan CandlesEvent, error)
+	// You can set the buffSize for this channel.
+	Subscribe(market string, interval string, buffSize ...uint64) (<-chan CandlesEvent, error)
 
 	// Unsubscribe from market with interval
 	Unsubscribe(market string, interval string) error
@@ -62,7 +63,7 @@ func newCandleWebSocketMessage(action Action, market string, interval string) We
 	}
 }
 
-func (c *candlesEventHandler) Subscribe(market string, interval string, buffSize uint64) (<-chan CandlesEvent, error) {
+func (c *candlesEventHandler) Subscribe(market string, interval string, buffSize ...uint64) (<-chan CandlesEvent, error) {
 
 	key := getMapKey(market, interval)
 	if c.subs.Has(key) {
@@ -71,7 +72,9 @@ func (c *candlesEventHandler) Subscribe(market string, interval string, buffSize
 
 	c.writechn <- newCandleWebSocketMessage(actionSubscribe, market, interval)
 
-	chn := make(chan CandlesEvent, buffSize)
+	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, 0)
+
+	chn := make(chan CandlesEvent, size)
 	c.subs.Set(key, chn)
 
 	return chn, nil

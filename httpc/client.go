@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -20,18 +21,22 @@ var (
 
 func httpGet[T any](
 	url string,
+	params url.Values,
 	updateRateLimit func(ratelimit int64),
 	updateRateLimitResetAt func(resetAt time.Time),
 	logDebug func(message string, args ...any),
 	config *authConfig,
 ) (T, error) {
-	req, _ := http.NewRequest("GET", url, nil)
+	reqUrl := util.IfOrElse(len(params) > 0, func() string { return fmt.Sprintf("%s?%s", url, params.Encode()) }, url)
+	req, _ := http.NewRequest("GET", reqUrl, nil)
+
 	return httpDo[T](req, updateRateLimit, updateRateLimitResetAt, logDebug, config)
 }
 
 func httpPost[T any](
 	url string,
 	body T,
+	params url.Values,
 	updateRateLimit func(ratelimit int64),
 	updateRateLimitResetAt func(resetAt time.Time),
 	logDebug func(message string, args ...any),
@@ -41,7 +46,9 @@ func httpPost[T any](
 	if err != nil {
 		return body, err
 	}
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+
+	reqUrl := util.IfOrElse(len(params) > 0, func() string { return fmt.Sprintf("%s?%s", url, params.Encode()) }, url)
+	req, _ := http.NewRequest("POST", reqUrl, bytes.NewBuffer(payload))
 	return httpDo[T](req, updateRateLimit, updateRateLimitResetAt, logDebug, config)
 }
 
@@ -93,6 +100,7 @@ func httpDo[T any](
 	}
 
 	defer response.Body.Close()
+
 	bytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		return data, err

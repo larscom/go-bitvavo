@@ -17,10 +17,10 @@ func main() {
 		key        = os.Getenv("API_KEY")
 		secret     = os.Getenv("API_SECRET")
 		client     = bitvavo.NewHttpClient(httpc.WithDebug(false))
-		authClient = client.ToAuthClient(key, secret, 0)
+		authClient = client.ToAuthClient(key, secret)
 	)
 
-	balance, err := authClient.GetBalance()
+	balance, err := authClient.GetBalance("ETH")
 	if err != nil {
 		log.Fatal(err)
 	}

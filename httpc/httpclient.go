@@ -2,10 +2,12 @@ package httpc
 
 import (
 	"fmt"
+	"net/url"
 	"sync"
 	"time"
 
 	"github.com/larscom/go-bitvavo/v2/log"
+	"github.com/larscom/go-bitvavo/v2/util"
 )
 
 const (
@@ -30,7 +32,7 @@ type HttpClient interface {
 	//
 	// If you set the value to 0, the default value of 10000 will be set.
 	// Whenever you go higher than the max value of 60000 the value will be set to 60000.
-	ToAuthClient(apiKey string, apiSecret string, windowTimeMs uint64) HttpClientAuth
+	ToAuthClient(apiKey string, apiSecret string, windowTimeMs ...uint64) HttpClientAuth
 
 	// GetTime returns the current server time in milliseconds since 1 Jan 1970
 	GetTime() (int64, error)
@@ -77,20 +79,21 @@ func WithDebug(debug bool) Option {
 	}
 }
 
-func (c *httpClient) ToAuthClient(apiKey string, apiSecret string, windowTimeMs uint64) HttpClientAuth {
+func (c *httpClient) ToAuthClient(apiKey string, apiSecret string, windowTimeMs ...uint64) HttpClientAuth {
 	if c.hasAuthClient() {
 		return c.authClient
 	}
 
-	if windowTimeMs == 0 {
-		windowTimeMs = DefaultWindowTimeMs
+	windowTime := util.IfOrElse(len(windowTimeMs) > 0, func() uint64 { return windowTimeMs[0] }, 0)
+	if windowTime == 0 {
+		windowTime = DefaultWindowTimeMs
 	}
-	if windowTimeMs > maxWindowTimeMs {
-		windowTimeMs = maxWindowTimeMs
+	if windowTime > maxWindowTimeMs {
+		windowTime = maxWindowTimeMs
 	}
 
 	config := &authConfig{
-		windowTimeMs: windowTimeMs,
+		windowTimeMs: windowTime,
 		apiKey:       apiKey,
 		apiSecret:    apiSecret,
 	}
@@ -108,7 +111,14 @@ func (c *httpClient) GetRateLimitResetAt() time.Time {
 }
 
 func (c *httpClient) GetTime() (int64, error) {
-	resp, err := httpGet[map[string]float64](fmt.Sprintf("%s/time", httpUrl), c.updateRateLimit, c.updateRateLimitResetAt, c.logDebug, nil)
+	resp, err := httpGet[map[string]float64](
+		fmt.Sprintf("%s/time", httpUrl),
+		make(url.Values),
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		nil,
+	)
 	if err != nil {
 		return 0, err
 	}

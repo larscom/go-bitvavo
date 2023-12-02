@@ -90,14 +90,16 @@ func newTicker24hEventHandler(writechn chan<- WebSocketMessage) *ticker24hEventH
 	}
 }
 
-func (t *ticker24hEventHandler) Subscribe(market string, buffSize uint64) (<-chan Ticker24hEvent, error) {
+func (t *ticker24hEventHandler) Subscribe(market string, buffSize ...uint64) (<-chan Ticker24hEvent, error) {
 	if t.subs.Has(market) {
 		return nil, fmt.Errorf("subscription already active for market: %s", market)
 	}
 
 	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTicker24h, market)
 
-	chn := make(chan Ticker24hEvent, buffSize)
+	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, 0)
+
+	chn := make(chan Ticker24hEvent, size)
 	t.subs.Set(market, chn)
 
 	return chn, nil
