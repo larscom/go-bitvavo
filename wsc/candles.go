@@ -29,6 +29,10 @@ type CandlesEvent struct {
 type CandlesEventHandler interface {
 	// Subscribe to market with interval.
 	// You can set the buffSize for this channel.
+	//
+	// If you have many subscriptions at once you may need to increase the buffSize
+	//
+	// Default buffSize: 50
 	Subscribe(market string, interval string, buffSize ...uint64) (<-chan CandlesEvent, error)
 
 	// Unsubscribe from market with interval
@@ -72,7 +76,7 @@ func (c *candlesEventHandler) Subscribe(market string, interval string, buffSize
 
 	c.writechn <- newCandleWebSocketMessage(actionSubscribe, market, interval)
 
-	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, 0)
+	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, DefaultBuffSize)
 
 	chn := make(chan CandlesEvent, size)
 	c.subs.Set(key, chn)

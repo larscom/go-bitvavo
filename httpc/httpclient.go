@@ -22,7 +22,6 @@ const (
 	headerAccessTimestamp  = "Bitvavo-Access-Timestamp"
 	headerAccessWindow     = "Bitvavo-Access-Window"
 )
-
 const DefaultWindowTimeMs = 10000
 
 type HttpClient interface {

@@ -12,7 +12,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	bookchn, err := ws.Book().Subscribe("ETH-EUR", 0)
+	bookchn, err := ws.Book().Subscribe("ETH-EUR")
 	if err != nil {
 		log.Fatal(err)
 	}

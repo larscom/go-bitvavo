@@ -137,10 +137,18 @@ func (f *FillEvent) UnmarshalJSON(bytes []byte) error {
 type AccountSub interface {
 	// Order channel to receive order events.
 	// You can set the buffSize for this channel.
+	//
+	// If you have many subscriptions at once you may need to increase the buffSize
+	//
+	// Default buffSize: 50
 	Order(buffSize ...uint64) <-chan OrderEvent
 
 	// Order channel to receive fill events.
 	// You can set the buffSize for this channel.
+	//
+	// If you have many subscriptions at once you may need to increase the buffSize
+	//
+	// Default buffSize: 50
 	Fill(buffSize ...uint64) <-chan FillEvent
 }
 
@@ -150,7 +158,7 @@ type accountSub struct {
 }
 
 func (a *accountSub) Order(buffSize ...uint64) <-chan OrderEvent {
-	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, 0)
+	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, DefaultBuffSize)
 
 	orderchn := make(chan OrderEvent, size)
 	a.orderchn = orderchn
@@ -159,7 +167,7 @@ func (a *accountSub) Order(buffSize ...uint64) <-chan OrderEvent {
 }
 
 func (a *accountSub) Fill(buffSize ...uint64) <-chan FillEvent {
-	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, 0)
+	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, DefaultBuffSize)
 
 	fillchn := make(chan FillEvent, size)
 	a.fillchn = fillchn

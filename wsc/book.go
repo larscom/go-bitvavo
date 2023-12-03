@@ -89,7 +89,7 @@ func (t *bookEventHandler) Subscribe(market string, buffSize ...uint64) (<-chan 
 
 	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameBook, market)
 
-	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, 0)
+	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, DefaultBuffSize)
 
 	chn := make(chan BookEvent, size)
 	t.subs.Set(market, chn)

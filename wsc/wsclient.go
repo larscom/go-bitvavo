@@ -16,10 +16,15 @@ const (
 	readLimit        = 655350
 	handshakeTimeout = 45 * time.Second
 )
+const DefaultBuffSize = 50
 
 type EventHandler[T any] interface {
 	// Subscribe to market.
 	// You can set the buffSize for the channel.
+	//
+	// If you have many subscriptions at once you may need to increase the buffSize
+	//
+	// Default buffSize: 50
 	Subscribe(market string, buffSize ...uint64) (<-chan T, error)
 
 	// Unsubscribe from market.

@@ -31,7 +31,8 @@ import "github.com/larscom/go-bitvavo/v2"
 
 By default, the websocket handler will try to reconnect to the websocket when the connection is lost, you can disable this behaviour in the options.
 
-For each subscription you can set the buffer size for the underlying channel.
+For each subscription you can set the buffer size for the underlying channel. All channels have a default buffer size of `50` which should be
+sufficient in most cases. You may need to increase this number if you have a **large** amount of subscriptions.
 
 ### Public Subscriptions
 
@@ -256,7 +257,7 @@ Private subscriptions do require authentication in the form of an `API key` and 
 
 #### Account :: Orders
 
-Subscribe to order events for market: `ETH-EUR` with buffer size `50`
+Subscribe to order events for market: `ETH-EUR` with buffer size `100`
 
 ```go
 func main() {
@@ -273,7 +274,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for orderEvent := range account.Order(50) {
+	for orderEvent := range account.Order(100) {
 		log.Println(orderEvent)
 	}
 }
@@ -301,7 +302,7 @@ type OrderEvent struct {
 
 #### Account :: Fill
 
-Subscribe to fill events for market: `ETH-EUR` with buffer size `50`
+Subscribe to fill events for market: `ETH-EUR` with buffer size `100`
 
 ```go
 func main() {
@@ -318,7 +319,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for fillEvent := range account.Fill(50) {
+	for fillEvent := range account.Fill(100) {
 		log.Println(fillEvent)
 	}
 }

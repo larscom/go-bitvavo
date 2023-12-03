@@ -12,7 +12,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	candlechn, err := ws.Candles().Subscribe("ETH-EUR", "5m", 0)
+	candlechn, err := ws.Candles().Subscribe("ETH-EUR", "5m")
 	if err != nil {
 		log.Fatal(err)
 	}

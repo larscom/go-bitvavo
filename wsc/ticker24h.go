@@ -97,7 +97,7 @@ func (t *ticker24hEventHandler) Subscribe(market string, buffSize ...uint64) (<-
 
 	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTicker24h, market)
 
-	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, 0)
+	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, DefaultBuffSize)
 
 	chn := make(chan Ticker24hEvent, size)
 	t.subs.Set(market, chn)
