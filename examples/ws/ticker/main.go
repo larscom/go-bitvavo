@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"time"
 
 	"github.com/larscom/go-bitvavo/v2"
 )
@@ -113,16 +112,13 @@ func main() {
 			log.Println(tickerEvent)
 		}
 	}()
-	go func() {
-		tickerchn, err := ws.Ticker().Subscribe("ALGO-EUR")
-		if err != nil {
-			log.Fatal(err)
-		}
 
-		for tickerEvent := range tickerchn {
-			log.Println(tickerEvent)
-		}
-	}()
+	tickerchn, err := ws.Ticker().Subscribe("ALGO-EUR")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	time.Sleep(60 * time.Minute)
+	for tickerEvent := range tickerchn {
+		log.Println(tickerEvent)
+	}
 }
