@@ -7,11 +7,9 @@
 
 Go Bitvavo is a **thread safe** client written in GO to interact with the Bitvavo platform. For _now_, mostly websockets (read only) are supported, so you can listen to all events that occur on the bitvavo platform (e.g: candles, ticker, orders, fills, etc)
 
-The HTTP client (read / write) is limited at the moment, it'll will grow with more functionality over time.
-
 ## 📒 Features
 
-- [x] WebSocket Client -- Read only (100%)	
+- [x] WebSocket Client -- Read only (100%)
 - [ ] Http Client (_soon_) -- Read / Write
   - Not complete yet, will grow with more functionality over time.
 
@@ -27,7 +25,24 @@ go get github.com/larscom/go-bitvavo/v2@latest
 import "github.com/larscom/go-bitvavo/v2"
 ```
 
-## 👂 WebSocket
+## 🌐 HTTP client
+
+The HTTP client is limited at the moment, it'll will grow with more functionality over time.
+
+```go
+func main() {
+	client := bitvavo.NewHttpClient()
+
+	time, err := client.GetTime()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(time)
+}
+
+```
+
+## 👂 WebSocket client
 
 By default, the websocket handler will try to reconnect to the websocket when the connection is lost, you can disable this behaviour in the options.
 

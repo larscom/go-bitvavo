@@ -43,8 +43,6 @@ type HttpClient interface {
 	GetRateLimit() int64
 
 	// GetRateLimitResetAt returns the time (local time) when the counter resets.
-	//
-	// Default value: time.Now()
 	GetRateLimitResetAt() time.Time
 
 	// GetMarkets returns the available markets with their status (trading,halted,auction) and
@@ -54,6 +52,9 @@ type HttpClient interface {
 	// GetMarkets returns the available markets with their status (trading,halted,auction) and
 	// available order types for a single market (e.g: ETH-EUR)
 	GetMarket(market string) (jsond.Market, error)
+
+	// GetAssets returns information on the supported assets
+	GetAssets() ([]any, error)
 }
 
 type Option func(*httpClient)
@@ -70,8 +71,7 @@ type httpClient struct {
 
 func NewHttpClient(options ...Option) HttpClient {
 	client := &httpClient{
-		ratelimit:        -1,
-		ratelimitResetAt: time.Now(),
+		ratelimit: -1,
 	}
 
 	for _, opt := range options {
@@ -154,6 +154,17 @@ func (c *httpClient) GetMarket(market string) (jsond.Market, error) {
 	return httpGet[jsond.Market](
 		fmt.Sprintf("%s/markets", httpUrl),
 		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		nil,
+	)
+}
+
+func (c *httpClient) GetAssets() ([]any, error) {
+	return httpGet[[]any](
+		fmt.Sprintf("%s/assets", httpUrl),
+		make(url.Values),
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
 		c.logDebug,

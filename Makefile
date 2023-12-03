@@ -11,10 +11,6 @@ trades:
 	go run ./examples/ws/trades/main.go		
 account:
 	go run ./examples/ws/account/main.go
-
-# http
-time:
-	go run ./examples/http/time/main.go	
 	
 build:
 	go build -o ./bin/bitvavo ./bitvavo.go
