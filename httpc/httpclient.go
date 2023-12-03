@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/log"
 	"github.com/larscom/go-bitvavo/v2/util"
 )
@@ -38,12 +39,22 @@ type HttpClient interface {
 	GetTime() (int64, error)
 
 	// GetRateLimit returns the remaining rate limit.
+	//
 	// Default value: -1
 	GetRateLimit() int64
 
 	// GetRateLimitResetAt returns the time (local time) when the counter resets.
+	//
 	// Default value: time.Now()
 	GetRateLimitResetAt() time.Time
+
+	// GetMarkets returns the available markets with their status (trading,halted,auction) and
+	// available order types.
+	GetMarkets() ([]jsond.Market, error)
+
+	// GetMarkets returns the available markets with their status (trading,halted,auction) and
+	// available order types for a single market (e.g: ETH-EUR)
+	GetMarket(market string) (jsond.Market, error)
 }
 
 type Option func(*httpClient)
@@ -124,6 +135,31 @@ func (c *httpClient) GetTime() (int64, error) {
 	}
 
 	return int64(resp["time"]), nil
+}
+
+func (c *httpClient) GetMarkets() ([]jsond.Market, error) {
+	return httpGet[[]jsond.Market](
+		fmt.Sprintf("%s/markets", httpUrl),
+		make(url.Values),
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		nil,
+	)
+}
+
+func (c *httpClient) GetMarket(market string) (jsond.Market, error) {
+	params := make(url.Values)
+	params.Add("market", market)
+
+	return httpGet[jsond.Market](
+		fmt.Sprintf("%s/markets", httpUrl),
+		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		nil,
+	)
 }
 
 func (c *httpClient) updateRateLimit(ratelimit int64) {

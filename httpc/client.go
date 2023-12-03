@@ -27,8 +27,7 @@ func httpGet[T any](
 	logDebug func(message string, args ...any),
 	config *authConfig,
 ) (T, error) {
-	reqUrl := util.IfOrElse(len(params) > 0, func() string { return fmt.Sprintf("%s?%s", url, params.Encode()) }, url)
-	req, _ := http.NewRequest("GET", reqUrl, nil)
+	req, _ := http.NewRequest("GET", createRequestUrl(url, params), nil)
 
 	return httpDo[T](req, updateRateLimit, updateRateLimitResetAt, logDebug, config)
 }
@@ -47,8 +46,7 @@ func httpPost[T any](
 		return body, err
 	}
 
-	reqUrl := util.IfOrElse(len(params) > 0, func() string { return fmt.Sprintf("%s?%s", url, params.Encode()) }, url)
-	req, _ := http.NewRequest("POST", reqUrl, bytes.NewBuffer(payload))
+	req, _ := http.NewRequest("POST", createRequestUrl(url, params), bytes.NewBuffer(payload))
 	return httpDo[T](req, updateRateLimit, updateRateLimitResetAt, logDebug, config)
 }
 
@@ -61,46 +59,30 @@ func httpDo[T any](
 ) (T, error) {
 	logDebug("executing request", "method", request.Method, "url", request.URL.String())
 
-	var data T
+	var empty T
 	if err := applyHeaders(request, config); err != nil {
-		return data, err
+		return empty, err
 	}
 
 	response, err := client.Do(request)
 	if err != nil {
-		return data, err
+		return empty, err
 	}
+	defer response.Body.Close()
 
-	for key, value := range response.Header {
-		if key == headerRatelimit {
-			if len(value) == 0 {
-				return data, fmt.Errorf("header: %s didn't contain a value", headerRatelimit)
-			}
-			updateRateLimit(util.MustInt64(value[0]))
-		}
-		if key == headerRatelimitResetAt {
-			if len(value) == 0 {
-				return data, fmt.Errorf("header: %s didn't contain a value", headerRatelimitResetAt)
-			}
-			updateRateLimitResetAt(time.UnixMilli(util.MustInt64(value[0])))
-		}
+	if err := updateRateLimits(response, updateRateLimit, updateRateLimitResetAt); err != nil {
+		return empty, err
 	}
 
 	if response.StatusCode > http.StatusIMUsed {
-		bytes, err := io.ReadAll(response.Body)
-		if err != nil {
-			return data, err
-		}
-
-		var apiError *jsond.BitvavoErr
-		if err := json.Unmarshal(bytes, &apiError); err != nil {
-			return data, fmt.Errorf("did not get OK response, code=%d, body=%s", response.StatusCode, string(bytes))
-		}
-		return data, apiError
+		return empty, unwrapErr(response)
 	}
 
-	defer response.Body.Close()
+	return unwrapBody[T](response)
+}
 
+func unwrapBody[T any](response *http.Response) (T, error) {
+	var data T
 	bytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		return data, err
@@ -111,6 +93,41 @@ func httpDo[T any](
 	}
 
 	return data, nil
+}
+
+func unwrapErr(response *http.Response) error {
+	bytes, err := io.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
+
+	var bitvavoErr *jsond.BitvavoErr
+	if err := json.Unmarshal(bytes, &bitvavoErr); err != nil {
+		return fmt.Errorf("did not get OK response, code=%d, body=%s", response.StatusCode, string(bytes))
+	}
+	return bitvavoErr
+}
+
+func updateRateLimits(
+	response *http.Response,
+	updateRateLimit func(ratelimit int64),
+	updateRateLimitResetAt func(resetAt time.Time),
+) error {
+	for key, value := range response.Header {
+		if key == headerRatelimit {
+			if len(value) == 0 {
+				return fmt.Errorf("header: %s didn't contain a value", headerRatelimit)
+			}
+			updateRateLimit(util.MustInt64(value[0]))
+		}
+		if key == headerRatelimitResetAt {
+			if len(value) == 0 {
+				return fmt.Errorf("header: %s didn't contain a value", headerRatelimitResetAt)
+			}
+			updateRateLimitResetAt(time.UnixMilli(util.MustInt64(value[0])))
+		}
+	}
+	return nil
 }
 
 func applyHeaders(request *http.Request, config *authConfig) error {
@@ -136,4 +153,8 @@ func applyHeaders(request *http.Request, config *authConfig) error {
 	request.Header.Set(headerAccessWindow, fmt.Sprint(config.windowTimeMs))
 
 	return nil
+}
+
+func createRequestUrl(url string, params url.Values) string {
+	return util.IfOrElse(len(params) > 0, func() string { return fmt.Sprintf("%s?%s", url, params.Encode()) }, url)
 }
