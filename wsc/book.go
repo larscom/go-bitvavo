@@ -23,6 +23,10 @@ type BookEvent struct {
 }
 
 func (b *BookEvent) UnmarshalJSON(bytes []byte) error {
+	if err := b.Book.UnmarshalJSON(bytes); err != nil {
+		return err
+	}
+
 	var bookEvent map[string]any
 	err := json.Unmarshal(bytes, &bookEvent)
 	if err != nil {
@@ -32,40 +36,10 @@ func (b *BookEvent) UnmarshalJSON(bytes []byte) error {
 	var (
 		event  = bookEvent["event"].(string)
 		market = bookEvent["market"].(string)
-		nonce  = bookEvent["nonce"].(float64)
 	)
-
-	bidEvents := bookEvent["bids"].([]any)
-	bids := make([]jsond.Page, len(bidEvents))
-	for i := 0; i < len(bidEvents); i++ {
-		price := bidEvents[i].([]any)[0].(string)
-		size := bidEvents[i].([]any)[1].(string)
-
-		bids[i] = jsond.Page{
-			Price: util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, 0),
-			Size:  util.IfOrElse(len(size) > 0, func() float64 { return util.MustFloat64(size) }, 0),
-		}
-	}
-
-	askEvents := bookEvent["asks"].([]any)
-	asks := make([]jsond.Page, len(askEvents))
-	for i := 0; i < len(askEvents); i++ {
-		price := askEvents[i].([]any)[0].(string)
-		size := askEvents[i].([]any)[1].(string)
-
-		asks[i] = jsond.Page{
-			Price: util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, 0),
-			Size:  util.IfOrElse(len(size) > 0, func() float64 { return util.MustFloat64(size) }, 0),
-		}
-	}
 
 	b.Event = event
 	b.Market = market
-	b.Book = jsond.Book{
-		Nonce: int64(nonce),
-		Bids:  bids,
-		Asks:  asks,
-	}
 
 	return nil
 }

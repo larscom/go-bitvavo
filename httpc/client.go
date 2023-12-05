@@ -16,7 +16,8 @@ import (
 )
 
 var (
-	client = http.DefaultClient
+	client      = http.DefaultClient
+	emptyParams = make(url.Values)
 )
 
 func httpGet[T any](

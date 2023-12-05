@@ -56,8 +56,15 @@ type HttpClient interface {
 	// GetAssets returns information on the supported assets
 	GetAssets() ([]jsond.Asset, error)
 
-	// GetAsset returns information on the supported asset by symbol (e.g: ETH)
+	// GetAsset returns information on the supported asset by symbol (e.g: ETH).
 	GetAsset(symbol string) (jsond.Asset, error)
+
+	// GetOrderBook returns a book with bids and asks for market.
+	// That is, the buy and sell orders made by all Bitvavo users in a specific market (e.g: ETH-EUR).
+	// The orders in the return parameters are sorted by price
+	//
+	// Optionally provide the depth to return the top depth orders only.
+	GetOrderBook(market string, depth ...uint64) (jsond.Book, error)
 }
 
 type Option func(*httpClient)
@@ -126,7 +133,7 @@ func (c *httpClient) GetRateLimitResetAt() time.Time {
 func (c *httpClient) GetTime() (int64, error) {
 	resp, err := httpGet[map[string]float64](
 		fmt.Sprintf("%s/time", httpUrl),
-		make(url.Values),
+		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
 		c.logDebug,
@@ -142,7 +149,7 @@ func (c *httpClient) GetTime() (int64, error) {
 func (c *httpClient) GetMarkets() ([]jsond.Market, error) {
 	return httpGet[[]jsond.Market](
 		fmt.Sprintf("%s/markets", httpUrl),
-		make(url.Values),
+		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
 		c.logDebug,
@@ -167,7 +174,7 @@ func (c *httpClient) GetMarket(market string) (jsond.Market, error) {
 func (c *httpClient) GetAssets() ([]jsond.Asset, error) {
 	return httpGet[[]jsond.Asset](
 		fmt.Sprintf("%s/assets", httpUrl),
-		make(url.Values),
+		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
 		c.logDebug,
@@ -181,6 +188,22 @@ func (c *httpClient) GetAsset(symbol string) (jsond.Asset, error) {
 
 	return httpGet[jsond.Asset](
 		fmt.Sprintf("%s/assets", httpUrl),
+		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		nil,
+	)
+}
+
+func (c *httpClient) GetOrderBook(market string, depth ...uint64) (jsond.Book, error) {
+	params := make(url.Values)
+	if len(depth) > 0 {
+		params.Add("depth", fmt.Sprint(depth[0]))
+	}
+
+	return httpGet[jsond.Book](
+		fmt.Sprintf("%s/%s/book", httpUrl, market),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,

@@ -50,6 +50,7 @@ func (c *httpClientAuth) GetBalance(symbol ...string) ([]jsond.Balance, error) {
 	if len(symbol) > 0 {
 		params.Add("symbol", symbol[0])
 	}
+
 	return httpGet[[]jsond.Balance](
 		fmt.Sprintf("%s/balance", httpUrl),
 		params,
@@ -63,7 +64,7 @@ func (c *httpClientAuth) GetBalance(symbol ...string) ([]jsond.Balance, error) {
 func (c *httpClientAuth) GetAccount() (jsond.Account, error) {
 	return httpGet[jsond.Account](
 		fmt.Sprintf("%s/account", httpUrl),
-		make(url.Values),
+		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
 		c.logDebug,
