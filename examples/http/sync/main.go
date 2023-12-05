@@ -4,10 +4,11 @@ import (
 	"log"
 
 	"github.com/larscom/go-bitvavo/v2"
+	"github.com/larscom/go-bitvavo/v2/httpc"
 )
 
 func main() {
-	client := bitvavo.NewHttpClient()
+	client := bitvavo.NewHttpClient(httpc.WithDebug(false))
 
 	time, err := client.GetTime()
 	if err != nil {

@@ -54,7 +54,10 @@ type HttpClient interface {
 	GetMarket(market string) (jsond.Market, error)
 
 	// GetAssets returns information on the supported assets
-	GetAssets() ([]any, error)
+	GetAssets() ([]jsond.Asset, error)
+
+	// GetAsset returns information on the supported asset by symbol (e.g: ETH)
+	GetAsset(symbol string) (jsond.Asset, error)
 }
 
 type Option func(*httpClient)
@@ -161,10 +164,24 @@ func (c *httpClient) GetMarket(market string) (jsond.Market, error) {
 	)
 }
 
-func (c *httpClient) GetAssets() ([]any, error) {
-	return httpGet[[]any](
+func (c *httpClient) GetAssets() ([]jsond.Asset, error) {
+	return httpGet[[]jsond.Asset](
 		fmt.Sprintf("%s/assets", httpUrl),
 		make(url.Values),
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		nil,
+	)
+}
+
+func (c *httpClient) GetAsset(symbol string) (jsond.Asset, error) {
+	params := make(url.Values)
+	params.Add("symbol", symbol)
+
+	return httpGet[jsond.Asset](
+		fmt.Sprintf("%s/assets", httpUrl),
+		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
 		c.logDebug,
