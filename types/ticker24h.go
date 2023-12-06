@@ -1,4 +1,4 @@
-package jsond
+package types
 
 type Ticker24h struct {
 	// The open price of the 24 hour period.

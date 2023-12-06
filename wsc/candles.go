@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/log"
+	"github.com/larscom/go-bitvavo/v2/types"
 	"github.com/larscom/go-bitvavo/v2/util"
 
 	"github.com/goccy/go-json"
@@ -23,7 +23,7 @@ type CandlesEvent struct {
 	Interval string `json:"interval"`
 
 	// The candle in the defined time period.
-	Candle jsond.Candle `json:"candle"`
+	Candle types.Candle `json:"candle"`
 }
 
 type CandlesEventHandler interface {

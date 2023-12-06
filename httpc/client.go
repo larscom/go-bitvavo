@@ -11,7 +11,7 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/larscom/go-bitvavo/v2/crypto"
-	"github.com/larscom/go-bitvavo/v2/jsond"
+	"github.com/larscom/go-bitvavo/v2/types"
 	"github.com/larscom/go-bitvavo/v2/util"
 )
 
@@ -102,7 +102,7 @@ func unwrapErr(response *http.Response) error {
 		return err
 	}
 
-	var bitvavoErr *jsond.BitvavoErr
+	var bitvavoErr *types.BitvavoErr
 	if err := json.Unmarshal(bytes, &bitvavoErr); err != nil {
 		return fmt.Errorf("did not get OK response, code=%d, body=%s", response.StatusCode, string(bytes))
 	}

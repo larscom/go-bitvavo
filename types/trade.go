@@ -1,4 +1,4 @@
-package jsond
+package types
 
 type Trade struct {
 	// The trade ID of the returned trade (UUID).

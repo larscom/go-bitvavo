@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/log"
+	"github.com/larscom/go-bitvavo/v2/types"
 	"github.com/larscom/go-bitvavo/v2/util"
 )
 
@@ -47,24 +47,24 @@ type HttpClient interface {
 
 	// GetMarkets returns the available markets with their status (trading,halted,auction) and
 	// available order types.
-	GetMarkets() ([]jsond.Market, error)
+	GetMarkets() ([]types.Market, error)
 
 	// GetMarkets returns the available markets with their status (trading,halted,auction) and
 	// available order types for a single market (e.g: ETH-EUR)
-	GetMarket(market string) (jsond.Market, error)
+	GetMarket(market string) (types.Market, error)
 
 	// GetAssets returns information on the supported assets
-	GetAssets() ([]jsond.Asset, error)
+	GetAssets() ([]types.Asset, error)
 
 	// GetAsset returns information on the supported asset by symbol (e.g: ETH).
-	GetAsset(symbol string) (jsond.Asset, error)
+	GetAsset(symbol string) (types.Asset, error)
 
 	// GetOrderBook returns a book with bids and asks for market.
 	// That is, the buy and sell orders made by all Bitvavo users in a specific market (e.g: ETH-EUR).
 	// The orders in the return parameters are sorted by price
 	//
 	// Optionally provide the depth to return the top depth orders only.
-	GetOrderBook(market string, depth ...uint64) (jsond.Book, error)
+	GetOrderBook(market string, depth ...uint64) (types.Book, error)
 }
 
 type Option func(*httpClient)
@@ -146,8 +146,8 @@ func (c *httpClient) GetTime() (int64, error) {
 	return int64(resp["time"]), nil
 }
 
-func (c *httpClient) GetMarkets() ([]jsond.Market, error) {
-	return httpGet[[]jsond.Market](
+func (c *httpClient) GetMarkets() ([]types.Market, error) {
+	return httpGet[[]types.Market](
 		fmt.Sprintf("%s/markets", httpUrl),
 		emptyParams,
 		c.updateRateLimit,
@@ -157,11 +157,11 @@ func (c *httpClient) GetMarkets() ([]jsond.Market, error) {
 	)
 }
 
-func (c *httpClient) GetMarket(market string) (jsond.Market, error) {
+func (c *httpClient) GetMarket(market string) (types.Market, error) {
 	params := make(url.Values)
 	params.Add("market", market)
 
-	return httpGet[jsond.Market](
+	return httpGet[types.Market](
 		fmt.Sprintf("%s/markets", httpUrl),
 		params,
 		c.updateRateLimit,
@@ -171,8 +171,8 @@ func (c *httpClient) GetMarket(market string) (jsond.Market, error) {
 	)
 }
 
-func (c *httpClient) GetAssets() ([]jsond.Asset, error) {
-	return httpGet[[]jsond.Asset](
+func (c *httpClient) GetAssets() ([]types.Asset, error) {
+	return httpGet[[]types.Asset](
 		fmt.Sprintf("%s/assets", httpUrl),
 		emptyParams,
 		c.updateRateLimit,
@@ -182,11 +182,11 @@ func (c *httpClient) GetAssets() ([]jsond.Asset, error) {
 	)
 }
 
-func (c *httpClient) GetAsset(symbol string) (jsond.Asset, error) {
+func (c *httpClient) GetAsset(symbol string) (types.Asset, error) {
 	params := make(url.Values)
 	params.Add("symbol", symbol)
 
-	return httpGet[jsond.Asset](
+	return httpGet[types.Asset](
 		fmt.Sprintf("%s/assets", httpUrl),
 		params,
 		c.updateRateLimit,
@@ -196,13 +196,13 @@ func (c *httpClient) GetAsset(symbol string) (jsond.Asset, error) {
 	)
 }
 
-func (c *httpClient) GetOrderBook(market string, depth ...uint64) (jsond.Book, error) {
+func (c *httpClient) GetOrderBook(market string, depth ...uint64) (types.Book, error) {
 	params := make(url.Values)
 	if len(depth) > 0 {
 		params.Add("depth", fmt.Sprint(depth[0]))
 	}
 
-	return httpGet[jsond.Book](
+	return httpGet[types.Book](
 		fmt.Sprintf("%s/%s/book", httpUrl, market),
 		params,
 		c.updateRateLimit,

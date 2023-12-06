@@ -1,4 +1,4 @@
-package jsond
+package types
 
 type Order struct {
 	Guid string `json:"guid"`

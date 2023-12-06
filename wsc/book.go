@@ -3,8 +3,8 @@ package wsc
 import (
 	"fmt"
 
-	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/log"
+	"github.com/larscom/go-bitvavo/v2/types"
 
 	"github.com/goccy/go-json"
 	"github.com/larscom/go-bitvavo/v2/util"
@@ -19,7 +19,7 @@ type BookEvent struct {
 	Market string `json:"market"`
 
 	// The book containing the bids and asks.
-	Book jsond.Book `json:"book"`
+	Book types.Book `json:"book"`
 }
 
 func (b *BookEvent) UnmarshalJSON(bytes []byte) error {

@@ -1,4 +1,4 @@
-package jsond
+package types
 
 import (
 	"github.com/goccy/go-json"

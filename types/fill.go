@@ -1,4 +1,4 @@
-package jsond
+package types
 
 type Fill struct {
 	// The id of the order on which has been filled

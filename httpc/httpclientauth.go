@@ -6,16 +6,16 @@ import (
 
 	"net/url"
 
-	"github.com/larscom/go-bitvavo/v2/jsond"
+	"github.com/larscom/go-bitvavo/v2/types"
 )
 
 type HttpClientAuth interface {
 	// GetBalance returns the balance on the account.
 	// Optionally provide the symbol to filter for in uppercase (e.g: ETH)
-	GetBalance(symbol ...string) ([]jsond.Balance, error)
+	GetBalance(symbol ...string) ([]types.Balance, error)
 
 	// GetAccount returns trading volume and fees for account.
-	GetAccount() (jsond.Account, error)
+	GetAccount() (types.Account, error)
 }
 
 type httpClientAuth struct {
@@ -45,13 +45,13 @@ func newHttpClientAuth(
 	}
 }
 
-func (c *httpClientAuth) GetBalance(symbol ...string) ([]jsond.Balance, error) {
+func (c *httpClientAuth) GetBalance(symbol ...string) ([]types.Balance, error) {
 	params := make(url.Values)
 	if len(symbol) > 0 {
 		params.Add("symbol", symbol[0])
 	}
 
-	return httpGet[[]jsond.Balance](
+	return httpGet[[]types.Balance](
 		fmt.Sprintf("%s/balance", httpUrl),
 		params,
 		c.updateRateLimit,
@@ -61,8 +61,8 @@ func (c *httpClientAuth) GetBalance(symbol ...string) ([]jsond.Balance, error) {
 	)
 }
 
-func (c *httpClientAuth) GetAccount() (jsond.Account, error) {
-	return httpGet[jsond.Account](
+func (c *httpClientAuth) GetAccount() (types.Account, error) {
+	return httpGet[types.Account](
 		fmt.Sprintf("%s/account", httpUrl),
 		emptyParams,
 		c.updateRateLimit,

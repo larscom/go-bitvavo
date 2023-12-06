@@ -6,8 +6,8 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/larscom/go-bitvavo/v2/crypto"
-	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/log"
+	"github.com/larscom/go-bitvavo/v2/types"
 	"github.com/larscom/go-bitvavo/v2/util"
 	"github.com/smallnest/safemap"
 )
@@ -20,7 +20,7 @@ type OrderEvent struct {
 	Market string `json:"market"`
 
 	// The order itself.
-	Order jsond.Order `json:"order"`
+	Order types.Order `json:"order"`
 }
 
 func (o *OrderEvent) UnmarshalJSON(bytes []byte) error {
@@ -59,7 +59,7 @@ func (o *OrderEvent) UnmarshalJSON(bytes []byte) error {
 
 	o.Market = market
 	o.Event = event
-	o.Order = jsond.Order{
+	o.Order = types.Order{
 		Guid:                guid,
 		OrderId:             orderId,
 		Created:             int64(created),
@@ -91,7 +91,7 @@ type FillEvent struct {
 	// The market which was requested in the subscription
 	Market string `json:"market"`
 	// The fill itself
-	Fill jsond.Fill `json:"fill"`
+	Fill types.Fill `json:"fill"`
 }
 
 func (f *FillEvent) UnmarshalJSON(bytes []byte) error {
@@ -119,7 +119,7 @@ func (f *FillEvent) UnmarshalJSON(bytes []byte) error {
 
 	f.Market = market
 	f.Event = event
-	f.Fill = jsond.Fill{
+	f.Fill = types.Fill{
 		OrderId:     orderId,
 		FillId:      fillId,
 		Timestamp:   int64(timestamp),

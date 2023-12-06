@@ -1,4 +1,4 @@
-package jsond
+package types
 
 type Ticker struct {
 	// The price of the best (highest) bid offer available, only sent when either bestBid or bestBidSize has changed.

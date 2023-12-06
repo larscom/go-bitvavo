@@ -3,8 +3,8 @@ package wsc
 import (
 	"fmt"
 
-	"github.com/larscom/go-bitvavo/v2/jsond"
 	"github.com/larscom/go-bitvavo/v2/log"
+	"github.com/larscom/go-bitvavo/v2/types"
 
 	"github.com/goccy/go-json"
 	"github.com/larscom/go-bitvavo/v2/util"
@@ -19,7 +19,7 @@ type Ticker24hEvent struct {
 	Market string `json:"market"`
 
 	// The ticker24h containing the prices etc.
-	Ticker24h jsond.Ticker24h `json:"ticker24h"`
+	Ticker24h types.Ticker24h `json:"ticker24h"`
 }
 
 func (t *Ticker24hEvent) UnmarshalJSON(bytes []byte) error {
@@ -58,7 +58,7 @@ func (t *Ticker24hEvent) UnmarshalJSON(bytes []byte) error {
 
 	t.Event = event
 	t.Market = market
-	t.Ticker24h = jsond.Ticker24h{
+	t.Ticker24h = types.Ticker24h{
 		Open:           util.IfOrElse(len(open) > 0, func() float64 { return util.MustFloat64(open) }, 0),
 		High:           util.IfOrElse(len(high) > 0, func() float64 { return util.MustFloat64(high) }, 0),
 		Low:            util.IfOrElse(len(low) > 0, func() float64 { return util.MustFloat64(low) }, 0),
