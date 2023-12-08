@@ -1,6 +1,7 @@
 package wsc
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -17,6 +18,12 @@ const (
 	handshakeTimeout = 45 * time.Second
 )
 const DefaultBuffSize = 50
+
+var (
+	ErrNoSubscriptionActive      = errors.New("no subscription active")
+	ErrSubscriptionAlreadyActive = errors.New("subscription already active")
+	ErrAuthenticationFailed      = errors.New("could not subscribe, authentication failed")
+)
 
 type EventHandler[T any] interface {
 	// Subscribe to market.

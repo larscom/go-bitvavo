@@ -1,8 +1,6 @@
 package wsc
 
 import (
-	"fmt"
-
 	"github.com/larscom/go-bitvavo/v2/log"
 	"github.com/larscom/go-bitvavo/v2/types"
 
@@ -58,7 +56,7 @@ func newBookEventHandler(writechn chan<- WebSocketMessage) *bookEventHandler {
 
 func (t *bookEventHandler) Subscribe(market string, buffSize ...uint64) (<-chan BookEvent, error) {
 	if t.subs.Has(market) {
-		return nil, fmt.Errorf("subscription already active for market: %s", market)
+		return nil, ErrSubscriptionAlreadyActive
 	}
 
 	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameBook, market)
@@ -81,7 +79,7 @@ func (t *bookEventHandler) Unsubscribe(market string) error {
 		return nil
 	}
 
-	return fmt.Errorf("no subscription active for market: %s", market)
+	return ErrNoSubscriptionActive
 }
 
 func (t *bookEventHandler) UnsubscribeAll() error {

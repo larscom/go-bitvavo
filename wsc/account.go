@@ -1,7 +1,6 @@
 package wsc
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -207,7 +206,7 @@ func newAccountEventHandler(apiKey string, apiSecret string, writechn chan<- Web
 
 func (t *accountEventHandler) Subscribe(market string) (AccountSub, error) {
 	if t.subs.Has(market) {
-		return nil, fmt.Errorf("subscription already active for market: %s", market)
+		return nil, ErrSubscriptionAlreadyActive
 	}
 
 	if err := t.withAuth(func() {
@@ -243,7 +242,7 @@ func (t *accountEventHandler) Unsubscribe(market string) error {
 		return nil
 	}
 
-	return fmt.Errorf("no subscription active for market: %s", market)
+	return ErrNoSubscriptionActive
 }
 
 func (t *accountEventHandler) UnsubscribeAll() error {
@@ -324,7 +323,7 @@ func (t *accountEventHandler) withAuth(action func()) error {
 		return nil
 	}
 
-	return fmt.Errorf("could not subscribe, authentication failed")
+	return ErrAuthenticationFailed
 }
 
 func (t *accountEventHandler) hasOrderChn(market string) bool {

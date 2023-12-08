@@ -15,6 +15,10 @@ import (
 	"github.com/larscom/go-bitvavo/v2/util"
 )
 
+type Params interface {
+	ToParams() url.Values
+}
+
 var (
 	client      = http.DefaultClient
 	emptyParams = make(url.Values)

@@ -1,8 +1,6 @@
 package wsc
 
 import (
-	"fmt"
-
 	"github.com/larscom/go-bitvavo/v2/log"
 	"github.com/larscom/go-bitvavo/v2/types"
 
@@ -23,32 +21,23 @@ type TradesEvent struct {
 }
 
 func (t *TradesEvent) UnmarshalJSON(bytes []byte) error {
-	var tradesEvent map[string]any
+	if err := t.Trade.UnmarshalJSON(bytes); err != nil {
+		return err
+	}
 
+	var tradesEvent map[string]any
 	err := json.Unmarshal(bytes, &tradesEvent)
 	if err != nil {
 		return err
 	}
 
 	var (
-		event     = tradesEvent["event"].(string)
-		market    = tradesEvent["market"].(string)
-		id        = tradesEvent["id"].(string)
-		amount    = tradesEvent["amount"].(string)
-		price     = tradesEvent["price"].(string)
-		side      = tradesEvent["side"].(string)
-		timestamp = tradesEvent["timestamp"].(float64)
+		event  = tradesEvent["event"].(string)
+		market = tradesEvent["market"].(string)
 	)
 
 	t.Event = event
 	t.Market = market
-	t.Trade = types.Trade{
-		Id:        id,
-		Amount:    util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, 0),
-		Price:     util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, 0),
-		Side:      side,
-		Timestamp: int64(timestamp),
-	}
 
 	return nil
 }
@@ -67,7 +56,7 @@ func newTradesEventHandler(writechn chan<- WebSocketMessage) *tradesEventHandler
 
 func (t *tradesEventHandler) Subscribe(market string, buffSize ...uint64) (<-chan TradesEvent, error) {
 	if t.subs.Has(market) {
-		return nil, fmt.Errorf("subscription already active for market: %s", market)
+		return nil, ErrSubscriptionAlreadyActive
 	}
 
 	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTrades, market)
@@ -90,7 +79,7 @@ func (t *tradesEventHandler) Unsubscribe(market string) error {
 		return nil
 	}
 
-	return fmt.Errorf("no subscription active for market: %s", market)
+	return ErrNoSubscriptionActive
 }
 
 func (t *tradesEventHandler) UnsubscribeAll() error {

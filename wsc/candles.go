@@ -71,7 +71,7 @@ func (c *candlesEventHandler) Subscribe(market string, interval string, buffSize
 
 	key := getMapKey(market, interval)
 	if c.subs.Has(key) {
-		return nil, fmt.Errorf("subscription already active for market: %s with interval: %s", market, interval)
+		return nil, ErrSubscriptionAlreadyActive
 	}
 
 	c.writechn <- newCandleWebSocketMessage(actionSubscribe, market, interval)
@@ -95,7 +95,7 @@ func (c *candlesEventHandler) Unsubscribe(market string, interval string) error 
 		return nil
 	}
 
-	return fmt.Errorf("no subscription active for market: %s with interval: %s", market, interval)
+	return ErrNoSubscriptionActive
 }
 
 func (c *candlesEventHandler) UnsubscribeAll() error {

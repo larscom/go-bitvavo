@@ -65,6 +65,12 @@ type HttpClient interface {
 	//
 	// Optionally provide the depth to return the top depth orders only.
 	GetOrderBook(market string, depth ...uint64) (types.Book, error)
+
+	// GetTrades returns the list of all trades made by all Bitvavo users for market (e.g: ETH-EUR).
+	// That is, the trades that have been executed in the past.
+	//
+	// Optionally provide the params (see: TradeParams)
+	GetTrades(market string, params ...Params) ([]types.Trade, error)
 }
 
 type Option func(*httpClient)
@@ -204,6 +210,21 @@ func (c *httpClient) GetOrderBook(market string, depth ...uint64) (types.Book, e
 
 	return httpGet[types.Book](
 		fmt.Sprintf("%s/%s/book", httpUrl, market),
+		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		nil,
+	)
+}
+
+func (c *httpClient) GetTrades(market string, opts ...Params) ([]types.Trade, error) {
+	params := make(url.Values)
+	if len(opts) > 0 {
+		params = opts[0].ToParams()
+	}
+	return httpGet[[]types.Trade](
+		fmt.Sprintf("%s/%s/trades", httpUrl, market),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
