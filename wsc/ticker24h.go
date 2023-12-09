@@ -30,50 +30,28 @@ func (t *Ticker24hEvent) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 
-	d := ticker24hEvent["data"].([]any)
-	if len(d) != 1 {
+	data := ticker24hEvent["data"].([]any)
+	if len(data) != 1 {
 		return fmt.Errorf("unexpected length: %d, expected: 1", len(ticker24hEvent))
 	}
 
 	var (
-		ticker24h = d[0].(map[string]any)
-
-		event          = ticker24hEvent["event"].(string)
-		market         = ticker24h["market"].(string)
-		open           = ticker24h["open"].(string)
-		high           = ticker24h["high"].(string)
-		low            = ticker24h["low"].(string)
-		last           = ticker24h["last"].(string)
-		volume         = ticker24h["volume"].(string)
-		volumeQuote    = ticker24h["volumeQuote"].(string)
-		bid            = ticker24h["bid"].(string)
-		bidSize        = ticker24h["bidSize"].(string)
-		ask            = ticker24h["ask"].(string)
-		askSize        = ticker24h["askSize"].(string)
-		timestamp      = ticker24h["timestamp"].(float64)
-		startTimestamp = ticker24h["startTimestamp"].(float64)
-		openTimestamp  = ticker24h["openTimestamp"].(float64)
-		closeTimestamp = ticker24h["closeTimestamp"].(float64)
+		ticker24h = data[0].(map[string]any)
+		event     = ticker24hEvent["event"].(string)
+		market    = ticker24h["market"].(string)
 	)
+
+	ticker24hBytes, err := json.Marshal(ticker24h)
+	if err != nil {
+		return err
+	}
+
+	if err := t.Ticker24h.UnmarshalJSON(ticker24hBytes); err != nil {
+		return err
+	}
 
 	t.Event = event
 	t.Market = market
-	t.Ticker24h = types.Ticker24h{
-		Open:           util.IfOrElse(len(open) > 0, func() float64 { return util.MustFloat64(open) }, 0),
-		High:           util.IfOrElse(len(high) > 0, func() float64 { return util.MustFloat64(high) }, 0),
-		Low:            util.IfOrElse(len(low) > 0, func() float64 { return util.MustFloat64(low) }, 0),
-		Last:           util.IfOrElse(len(last) > 0, func() float64 { return util.MustFloat64(last) }, 0),
-		Volume:         util.IfOrElse(len(volume) > 0, func() float64 { return util.MustFloat64(volume) }, 0),
-		VolumeQuote:    util.IfOrElse(len(volumeQuote) > 0, func() float64 { return util.MustFloat64(volumeQuote) }, 0),
-		Bid:            util.IfOrElse(len(bid) > 0, func() float64 { return util.MustFloat64(bid) }, 0),
-		BidSize:        util.IfOrElse(len(bidSize) > 0, func() float64 { return util.MustFloat64(bidSize) }, 0),
-		Ask:            util.IfOrElse(len(ask) > 0, func() float64 { return util.MustFloat64(ask) }, 0),
-		AskSize:        util.IfOrElse(len(askSize) > 0, func() float64 { return util.MustFloat64(askSize) }, 0),
-		Timestamp:      int64(timestamp),
-		StartTimestamp: int64(startTimestamp),
-		OpenTimestamp:  int64(openTimestamp),
-		CloseTimestamp: int64(closeTimestamp),
-	}
 
 	return nil
 }

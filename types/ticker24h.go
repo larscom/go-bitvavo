@@ -1,5 +1,10 @@
 package types
 
+import (
+	"github.com/goccy/go-json"
+	"github.com/larscom/go-bitvavo/v2/util"
+)
+
 type Ticker24h struct {
 	// The open price of the 24 hour period.
 	Open float64 `json:"open"`
@@ -42,4 +47,47 @@ type Ticker24h struct {
 
 	// Close timestamp in unix milliseconds.
 	CloseTimestamp int64 `json:"closeTimestamp"`
+}
+
+func (t *Ticker24h) UnmarshalJSON(bytes []byte) error {
+	var j map[string]any
+
+	err := json.Unmarshal(bytes, &j)
+	if err != nil {
+		return err
+	}
+
+	var (
+		open           = j["open"].(string)
+		high           = j["high"].(string)
+		low            = j["low"].(string)
+		last           = j["last"].(string)
+		volume         = j["volume"].(string)
+		volumeQuote    = j["volumeQuote"].(string)
+		bid            = j["bid"].(string)
+		bidSize        = j["bidSize"].(string)
+		ask            = j["ask"].(string)
+		askSize        = j["askSize"].(string)
+		timestamp      = j["timestamp"].(float64)
+		startTimestamp = j["startTimestamp"].(float64)
+		openTimestamp  = j["openTimestamp"].(float64)
+		closeTimestamp = j["closeTimestamp"].(float64)
+	)
+
+	t.Open = util.IfOrElse(len(open) > 0, func() float64 { return util.MustFloat64(open) }, 0)
+	t.High = util.IfOrElse(len(high) > 0, func() float64 { return util.MustFloat64(high) }, 0)
+	t.Low = util.IfOrElse(len(low) > 0, func() float64 { return util.MustFloat64(low) }, 0)
+	t.Last = util.IfOrElse(len(last) > 0, func() float64 { return util.MustFloat64(last) }, 0)
+	t.Volume = util.IfOrElse(len(volume) > 0, func() float64 { return util.MustFloat64(volume) }, 0)
+	t.VolumeQuote = util.IfOrElse(len(volumeQuote) > 0, func() float64 { return util.MustFloat64(volumeQuote) }, 0)
+	t.Bid = util.IfOrElse(len(bid) > 0, func() float64 { return util.MustFloat64(bid) }, 0)
+	t.BidSize = util.IfOrElse(len(bidSize) > 0, func() float64 { return util.MustFloat64(bidSize) }, 0)
+	t.Ask = util.IfOrElse(len(ask) > 0, func() float64 { return util.MustFloat64(ask) }, 0)
+	t.AskSize = util.IfOrElse(len(askSize) > 0, func() float64 { return util.MustFloat64(askSize) }, 0)
+	t.Timestamp = int64(timestamp)
+	t.StartTimestamp = int64(startTimestamp)
+	t.OpenTimestamp = int64(openTimestamp)
+	t.CloseTimestamp = int64(closeTimestamp)
+
+	return nil
 }
