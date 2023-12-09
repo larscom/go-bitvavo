@@ -5,7 +5,7 @@ import (
 	"github.com/larscom/go-bitvavo/v2/util"
 )
 
-type Ticker struct {
+type TickerBook struct {
 	// The price of the best (highest) bid offer available, only sent when either bestBid or bestBidSize has changed.
 	BestBid float64 `json:"bestBid"`
 
@@ -22,7 +22,7 @@ type Ticker struct {
 	LastPrice float64 `json:"lastPrice"`
 }
 
-func (t *Ticker) UnmarshalJSON(bytes []byte) error {
+func (t *TickerBook) UnmarshalJSON(bytes []byte) error {
 	var j map[string]string
 
 	err := json.Unmarshal(bytes, &j)

@@ -77,6 +77,12 @@ type HttpClient interface {
 	//
 	// Optionally provide extra params (see: CandleParams)
 	GetCandles(market string, interval string, params ...OptionalParams) ([]types.Candle, error)
+
+	// GetTickerPrices returns price of the latest trades on Bitvavo for all markets.
+	GetTickerPrices() ([]types.TickerPrice, error)
+
+	// GetTickerPrice returns price of the latest trades on Bitvavo for a single market (e.g: ETH-EUR).
+	GetTickerPrice(market string) (types.TickerPrice, error)
 }
 
 type Option func(*httpClient)
@@ -248,6 +254,31 @@ func (c *httpClient) GetCandles(market string, interval string, opt ...OptionalP
 
 	return httpGet[[]types.Candle](
 		fmt.Sprintf("%s/%s/candles", httpUrl, market),
+		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		nil,
+	)
+}
+
+func (c *httpClient) GetTickerPrices() ([]types.TickerPrice, error) {
+	return httpGet[[]types.TickerPrice](
+		fmt.Sprintf("%s/ticker/price", httpUrl),
+		emptyParams,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		nil,
+	)
+}
+
+func (c *httpClient) GetTickerPrice(market string) (types.TickerPrice, error) {
+	params := make(url.Values)
+	params.Add("market", market)
+
+	return httpGet[types.TickerPrice](
+		fmt.Sprintf("%s/ticker/price", httpUrl),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,

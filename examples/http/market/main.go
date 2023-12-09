@@ -14,7 +14,7 @@ func main() {
 
 	book, err := client.GetOrderBook("ETH-EUR")
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 	log.Println("Book", book)
 
@@ -22,7 +22,7 @@ func main() {
 		Start: time.Now().Add(-1 * time.Minute),
 	})
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 	log.Println("Trades", trades)
 
@@ -30,7 +30,13 @@ func main() {
 		Limit: 5,
 	})
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 	log.Println("Candles", candles)
+
+	tickerprices, err := client.GetTickerPrices()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("TickerPrices", tickerprices)
 }
