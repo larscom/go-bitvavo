@@ -23,6 +23,10 @@ type OrderEvent struct {
 }
 
 func (o *OrderEvent) UnmarshalJSON(bytes []byte) error {
+	if err := o.Order.UnmarshalJSON(bytes); err != nil {
+		return err
+	}
+
 	var orderEvent map[string]any
 	err := json.Unmarshal(bytes, &orderEvent)
 	if err != nil {
@@ -30,56 +34,12 @@ func (o *OrderEvent) UnmarshalJSON(bytes []byte) error {
 	}
 
 	var (
-		market              = orderEvent["market"].(string)
-		event               = orderEvent["event"].(string)
-		guid                = orderEvent["guid"].(string)
-		orderId             = orderEvent["orderId"].(string)
-		created             = orderEvent["created"].(float64)
-		updated             = orderEvent["updated"].(float64)
-		status              = orderEvent["status"].(string)
-		side                = orderEvent["side"].(string)
-		orderType           = orderEvent["orderType"].(string)
-		amount              = orderEvent["amount"].(string)
-		amountRemaining     = orderEvent["amountRemaining"].(string)
-		price               = orderEvent["price"].(string)
-		onHold              = orderEvent["onHold"].(string)
-		onHoldCurrency      = orderEvent["onHoldCurrency"].(string)
-		timeInForce         = orderEvent["timeInForce"].(string)
-		postOnly            = orderEvent["postOnly"].(bool)
-		selfTradePrevention = orderEvent["selfTradePrevention"].(string)
-		visible             = orderEvent["visible"].(bool)
-
-		// only for stop orders
-		triggerPrice     = getOrEmpty("triggerPrice", orderEvent)
-		triggerAmount    = getOrEmpty("triggerAmount", orderEvent)
-		triggerType      = getOrEmpty("triggerType", orderEvent)
-		triggerReference = getOrEmpty("triggerReference", orderEvent)
+		market = orderEvent["market"].(string)
+		event  = orderEvent["event"].(string)
 	)
 
 	o.Market = market
 	o.Event = event
-	o.Order = types.Order{
-		Guid:                guid,
-		OrderId:             orderId,
-		Created:             int64(created),
-		Updated:             int64(updated),
-		Status:              status,
-		Side:                side,
-		OrderType:           orderType,
-		Amount:              util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, 0),
-		AmountRemaining:     util.IfOrElse(len(amountRemaining) > 0, func() float64 { return util.MustFloat64(amountRemaining) }, 0),
-		Price:               util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, 0),
-		OnHold:              util.IfOrElse(len(onHold) > 0, func() float64 { return util.MustFloat64(onHold) }, 0),
-		OnHoldCurrency:      onHoldCurrency,
-		TriggerPrice:        util.IfOrElse(len(triggerPrice) > 0, func() float64 { return util.MustFloat64(triggerPrice) }, 0),
-		TriggerAmount:       util.IfOrElse(len(triggerAmount) > 0, func() float64 { return util.MustFloat64(triggerAmount) }, 0),
-		TriggerType:         triggerType,
-		TriggerReference:    triggerReference,
-		TimeInForce:         timeInForce,
-		PostOnly:            postOnly,
-		SelfTradePrevention: selfTradePrevention,
-		Visible:             visible,
-	}
 
 	return nil
 }
@@ -94,6 +54,10 @@ type FillEvent struct {
 }
 
 func (f *FillEvent) UnmarshalJSON(bytes []byte) error {
+	if err := f.Fill.UnmarshalJSON(bytes); err != nil {
+		return err
+	}
+
 	var fillEvent map[string]any
 	err := json.Unmarshal(bytes, &fillEvent)
 	if err != nil {
@@ -101,34 +65,12 @@ func (f *FillEvent) UnmarshalJSON(bytes []byte) error {
 	}
 
 	var (
-		market    = fillEvent["market"].(string)
-		event     = fillEvent["event"].(string)
-		orderId   = fillEvent["orderId"].(string)
-		fillId    = fillEvent["fillId"].(string)
-		timestamp = fillEvent["timestamp"].(float64)
-		amount    = fillEvent["amount"].(string)
-		side      = fillEvent["side"].(string)
-		price     = fillEvent["price"].(string)
-		taker     = fillEvent["taker"].(bool)
-
-		// only available if settled is true
-		fee         = getOrEmpty("fee", fillEvent)
-		feeCurrency = getOrEmpty("feeCurrency", fillEvent)
+		market = fillEvent["market"].(string)
+		event  = fillEvent["event"].(string)
 	)
 
 	f.Market = market
 	f.Event = event
-	f.Fill = types.Fill{
-		OrderId:     orderId,
-		FillId:      fillId,
-		Timestamp:   int64(timestamp),
-		Amount:      util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, 0),
-		Side:        side,
-		Price:       util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, 0),
-		Taker:       taker,
-		Fee:         util.IfOrElse(len(fee) > 0, func() float64 { return util.MustFloat64(fee) }, 0),
-		FeeCurrency: feeCurrency,
-	}
 
 	return nil
 }
@@ -344,9 +286,4 @@ func (t *accountEventHandler) hasFillChn(market string) bool {
 	}
 
 	return false
-}
-
-func getOrEmpty(key string, data map[string]any) string {
-	value, exist := data[key]
-	return util.IfOrElse(exist, func() string { return value.(string) }, "")
 }

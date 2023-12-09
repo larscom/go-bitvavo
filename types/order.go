@@ -1,8 +1,11 @@
 package types
 
-type Order struct {
-	Guid string `json:"guid"`
+import (
+	"github.com/goccy/go-json"
+	"github.com/larscom/go-bitvavo/v2/util"
+)
 
+type Order struct {
 	// The order id of the returned order.
 	OrderId string `json:"orderId"`
 
@@ -75,4 +78,58 @@ type Order struct {
 
 	// Whether this order is visible on the order book.
 	Visible bool `json:"visible"`
+}
+
+func (o *Order) UnmarshalJSON(bytes []byte) error {
+	var j map[string]any
+	err := json.Unmarshal(bytes, &j)
+	if err != nil {
+		return err
+	}
+
+	var (
+		orderId             = j["orderId"].(string)
+		created             = j["created"].(float64)
+		updated             = j["updated"].(float64)
+		status              = j["status"].(string)
+		side                = j["side"].(string)
+		orderType           = j["orderType"].(string)
+		amount              = j["amount"].(string)
+		amountRemaining     = j["amountRemaining"].(string)
+		price               = j["price"].(string)
+		onHold              = j["onHold"].(string)
+		onHoldCurrency      = j["onHoldCurrency"].(string)
+		timeInForce         = j["timeInForce"].(string)
+		postOnly            = j["postOnly"].(bool)
+		selfTradePrevention = j["selfTradePrevention"].(string)
+		visible             = j["visible"].(bool)
+
+		// only for stop orders
+		triggerPrice     = util.GetOrEmpty("triggerPrice", j)
+		triggerAmount    = util.GetOrEmpty("triggerAmount", j)
+		triggerType      = util.GetOrEmpty("triggerType", j)
+		triggerReference = util.GetOrEmpty("triggerReference", j)
+	)
+
+	o.OrderId = orderId
+	o.Created = int64(created)
+	o.Updated = int64(updated)
+	o.Status = status
+	o.Side = side
+	o.OrderType = orderType
+	o.Amount = util.IfOrElse(len(amount) > 0, func() float64 { return util.MustFloat64(amount) }, 0)
+	o.AmountRemaining = util.IfOrElse(len(amountRemaining) > 0, func() float64 { return util.MustFloat64(amountRemaining) }, 0)
+	o.Price = util.IfOrElse(len(price) > 0, func() float64 { return util.MustFloat64(price) }, 0)
+	o.OnHold = util.IfOrElse(len(onHold) > 0, func() float64 { return util.MustFloat64(onHold) }, 0)
+	o.OnHoldCurrency = onHoldCurrency
+	o.TriggerPrice = util.IfOrElse(len(triggerPrice) > 0, func() float64 { return util.MustFloat64(triggerPrice) }, 0)
+	o.TriggerAmount = util.IfOrElse(len(triggerAmount) > 0, func() float64 { return util.MustFloat64(triggerAmount) }, 0)
+	o.TriggerType = triggerType
+	o.TriggerReference = triggerReference
+	o.TimeInForce = timeInForce
+	o.PostOnly = postOnly
+	o.SelfTradePrevention = selfTradePrevention
+	o.Visible = visible
+
+	return nil
 }
