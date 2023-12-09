@@ -3,15 +3,19 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/larscom/go-bitvavo/v2)](https://goreportcard.com/report/github.com/larscom/go-bitvavo/v2)
 [![Go Reference](https://pkg.go.dev/badge/github.com/larscom/go-bitvavo.svg)](https://pkg.go.dev/github.com/larscom/go-bitvavo)
 
-> Go **thread safe** client library for Bitvavo v2 (https://docs.bitvavo.com)
+> Go **thread safe** client library (WebSockets / HTTP) for Bitvavo v2 (https://docs.bitvavo.com)
 
-Go Bitvavo is a **thread safe** client written in GO to interact with the Bitvavo platform. For _now_, mostly websockets (read only) are supported, so you can listen to all events that occur on the bitvavo platform (e.g: candles, ticker, orders, fills, etc)
+Go Bitvavo is a **thread-safe** client written in GO to interact with the Bitvavo platform. It includes a WebSocket client (for read-only purposes) to listen to all events occurring on the Bitvavo platform (e.g. candles, ticker, orders, fills, etc.) and an HTTP client (for read/write operations). The HTTP client can retrieve the same data as WebSockets but also performs write operations such as placing orders and depositing assets into your account.
 
 ## 📒 Features
 
 - [x] WebSocket Client -- Read only (100%)
-- [ ] Http Client (_soon_) -- Read / Write
-  - Not complete yet, will grow with more functionality over time.
+- [ ] Http Client (~60%) -- Read / Write
+  - [x] Market data endpoints
+  - [x] Account endpoints
+  - [x] Synchronization endpoints
+  - [ ] Trading endpoints
+  - [ ] Transfer endpoints
 
 ## 🚀 Installation
 
