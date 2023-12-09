@@ -5,7 +5,7 @@
 
 > Go **thread safe** client library (WebSockets / HTTP) for Bitvavo v2 (https://docs.bitvavo.com)
 
-Go Bitvavo is a **thread-safe** client written in GO to interact with the Bitvavo platform. It includes a WebSocket client (for read-only purposes) to listen to all events occurring on the Bitvavo platform (e.g. candles, ticker, orders, fills, etc.) and an HTTP client (for read/write operations). The HTTP client can retrieve the same data as WebSockets but also performs write operations such as placing orders and depositing assets into your account.
+Go Bitvavo is a **thread-safe** client written in GO to interact with the Bitvavo platform. It includes a WebSocket client (for read-only purposes) to listen to all events occurring on the Bitvavo platform (e.g. candles, ticker, orders, fills, etc.) and an HTTP client (for read/write operations). The HTTP client can retrieve the same data as WebSockets but can also perform write operations such as placing orders and withdrawing assets from your account.
 
 ## 📒 Features
 
