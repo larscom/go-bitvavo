@@ -111,13 +111,13 @@ func (o *Order) UnmarshalJSON(bytes []byte) error {
 		selfTradePrevention = j["selfTradePrevention"].(string)
 		visible             = j["visible"].(bool)
 
-		clientOrderId = util.GetOrEmptyString("clientOrderId", j)
+		clientOrderId = util.GetOrEmpty[string]("clientOrderId", j)
 
 		// only for stop orders
-		triggerPrice     = util.GetOrEmptyString("triggerPrice", j)
-		triggerAmount    = util.GetOrEmptyString("triggerAmount", j)
-		triggerType      = util.GetOrEmptyString("triggerType", j)
-		triggerReference = util.GetOrEmptyString("triggerReference", j)
+		triggerPrice     = util.GetOrEmpty[string]("triggerPrice", j)
+		triggerAmount    = util.GetOrEmpty[string]("triggerAmount", j)
+		triggerType      = util.GetOrEmpty[string]("triggerType", j)
+		triggerReference = util.GetOrEmpty[string]("triggerReference", j)
 	)
 
 	o.OrderId = orderId

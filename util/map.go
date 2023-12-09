@@ -1,6 +1,7 @@
 package util
 
-func GetOrEmptyString(key string, data map[string]any) string {
+func GetOrEmpty[T any](key string, data map[string]any) T {
+	var empty T
 	value, exist := data[key]
-	return IfOrElse(exist, func() string { return value.(string) }, "")
+	return IfOrElse(exist && value != nil, func() T { return value.(T) }, empty)
 }

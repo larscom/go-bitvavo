@@ -45,4 +45,10 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println("TickerBooks", tickerbooks)
+
+	tickers24h, err := client.GetTickers24h()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Tickers24h", tickers24h)
 }

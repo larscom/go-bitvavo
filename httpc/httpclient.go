@@ -91,6 +91,12 @@ type HttpClient interface {
 	// GetTickerBook returns the highest buy and the lowest sell prices currently
 	// available for a single market (e.g: ETH-EUR) in the Bitvavo order book.
 	GetTickerBook(market string) (types.TickerBook, error)
+
+	// GetTickers24h returns high, low, open, last, and volume information for trades and orders for all markets over the previous 24 hours.
+	GetTickers24h() ([]types.Ticker24h, error)
+
+	// GetTicker24h returns high, low, open, last, and volume information for trades and orders for a single market over the previous 24 hours.
+	GetTicker24h(market string) (types.Ticker24h, error)
 }
 
 type Option func(*httpClient)
@@ -312,6 +318,31 @@ func (c *httpClient) GetTickerBook(market string) (types.TickerBook, error) {
 
 	return httpGet[types.TickerBook](
 		fmt.Sprintf("%s/ticker/book", httpUrl),
+		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		nil,
+	)
+}
+
+func (c *httpClient) GetTickers24h() ([]types.Ticker24h, error) {
+	return httpGet[[]types.Ticker24h](
+		fmt.Sprintf("%s/ticker/24h", httpUrl),
+		emptyParams,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		nil,
+	)
+}
+
+func (c *httpClient) GetTicker24h(market string) (types.Ticker24h, error) {
+	params := make(url.Values)
+	params.Add("market", market)
+
+	return httpGet[types.Ticker24h](
+		fmt.Sprintf("%s/ticker/24h", httpUrl),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
