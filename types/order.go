@@ -9,6 +9,12 @@ type Order struct {
 	// The order id of the returned order.
 	OrderId string `json:"orderId"`
 
+	// The personalized UUID for this orderId in this market.
+	ClientOrderId string `json:"clientOrderId"`
+
+	// The market in which the order was placed.
+	Market string `json:"market"`
+
 	// Is a timestamp in milliseconds since 1 Jan 1970.
 	Created int64 `json:"created"`
 
@@ -89,6 +95,7 @@ func (o *Order) UnmarshalJSON(bytes []byte) error {
 
 	var (
 		orderId             = j["orderId"].(string)
+		market              = j["market"].(string)
 		created             = j["created"].(float64)
 		updated             = j["updated"].(float64)
 		status              = j["status"].(string)
@@ -104,14 +111,18 @@ func (o *Order) UnmarshalJSON(bytes []byte) error {
 		selfTradePrevention = j["selfTradePrevention"].(string)
 		visible             = j["visible"].(bool)
 
+		clientOrderId = util.GetOrEmptyString("clientOrderId", j)
+
 		// only for stop orders
-		triggerPrice     = util.GetOrEmpty("triggerPrice", j)
-		triggerAmount    = util.GetOrEmpty("triggerAmount", j)
-		triggerType      = util.GetOrEmpty("triggerType", j)
-		triggerReference = util.GetOrEmpty("triggerReference", j)
+		triggerPrice     = util.GetOrEmptyString("triggerPrice", j)
+		triggerAmount    = util.GetOrEmptyString("triggerAmount", j)
+		triggerType      = util.GetOrEmptyString("triggerType", j)
+		triggerReference = util.GetOrEmptyString("triggerReference", j)
 	)
 
 	o.OrderId = orderId
+	o.ClientOrderId = clientOrderId
+	o.Market = market
 	o.Created = int64(created)
 	o.Updated = int64(updated)
 	o.Status = status

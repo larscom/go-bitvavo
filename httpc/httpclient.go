@@ -83,6 +83,14 @@ type HttpClient interface {
 
 	// GetTickerPrice returns price of the latest trades on Bitvavo for a single market (e.g: ETH-EUR).
 	GetTickerPrice(market string) (types.TickerPrice, error)
+
+	// GetTickerBooks returns the highest buy and the lowest sell prices currently available for
+	// all markets in the Bitvavo order book.
+	GetTickerBooks() ([]types.TickerBook, error)
+
+	// GetTickerBook returns the highest buy and the lowest sell prices currently
+	// available for a single market (e.g: ETH-EUR) in the Bitvavo order book.
+	GetTickerBook(market string) (types.TickerBook, error)
 }
 
 type Option func(*httpClient)
@@ -279,6 +287,31 @@ func (c *httpClient) GetTickerPrice(market string) (types.TickerPrice, error) {
 
 	return httpGet[types.TickerPrice](
 		fmt.Sprintf("%s/ticker/price", httpUrl),
+		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		nil,
+	)
+}
+
+func (c *httpClient) GetTickerBooks() ([]types.TickerBook, error) {
+	return httpGet[[]types.TickerBook](
+		fmt.Sprintf("%s/ticker/book", httpUrl),
+		emptyParams,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		nil,
+	)
+}
+
+func (c *httpClient) GetTickerBook(market string) (types.TickerBook, error) {
+	params := make(url.Values)
+	params.Add("market", market)
+
+	return httpGet[types.TickerBook](
+		fmt.Sprintf("%s/ticker/book", httpUrl),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,

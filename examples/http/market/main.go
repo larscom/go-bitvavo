@@ -39,4 +39,10 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println("TickerPrices", tickerprices)
+
+	tickerbooks, err := client.GetTickerBooks()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("TickerBooks", tickerbooks)
 }

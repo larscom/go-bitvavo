@@ -6,20 +6,20 @@ import (
 )
 
 type TickerBook struct {
-	// The price of the best (highest) bid offer available, only sent when either bestBid or bestBidSize has changed.
-	BestBid float64 `json:"bestBid"`
+	// The market you requested the current best orders for.
+	Market string `json:"market"`
 
-	// The size of the best (highest) bid offer available, only sent when either bestBid or bestBidSize has changed.
-	BestBidSize float64 `json:"bestBidSize"`
+	// The highest buy order in quote currency for market currently available on Bitvavo.
+	Bid float64 `json:"bid"`
 
-	// The price of the best (lowest) ask offer available, only sent when either bestAsk or bestAskSize has changed.
-	BestAsk float64 `json:"bestAsk"`
+	// The amount of base currency for bid in the order.
+	BidSize float64 `json:"bidSize"`
 
-	// The size of the best (lowest) ask offer available, only sent when either bestAsk or bestAskSize has changed.
-	BestAskSize float64 `json:"bestAskSize"`
+	// The lowest sell order in quote currency for market currently available on Bitvavo.
+	Ask float64 `json:"ask"`
 
-	// The last price for which a trade has occurred, only sent when lastPrice has changed.
-	LastPrice float64 `json:"lastPrice"`
+	// The amount of base currency for ask in the order.
+	AskSize float64 `json:"askSize"`
 }
 
 func (t *TickerBook) UnmarshalJSON(bytes []byte) error {
@@ -31,18 +31,17 @@ func (t *TickerBook) UnmarshalJSON(bytes []byte) error {
 	}
 
 	var (
-		bestBid     = j["bestBid"]
-		bestBidSize = j["bestBidSize"]
-		bestAsk     = j["bestAsk"]
-		bestAskSize = j["bestAskSize"]
-		lastPrice   = j["lastPrice"]
+		market  = j["market"]
+		bid     = j["bid"]
+		bidSize = j["bidSize"]
+		ask     = j["ask"]
+		askSize = j["askSize"]
 	)
-
-	t.BestBid = util.IfOrElse(len(bestBid) > 0, func() float64 { return util.MustFloat64(bestBid) }, 0)
-	t.BestBidSize = util.IfOrElse(len(bestBidSize) > 0, func() float64 { return util.MustFloat64(bestBidSize) }, 0)
-	t.BestAsk = util.IfOrElse(len(bestAsk) > 0, func() float64 { return util.MustFloat64(bestAsk) }, 0)
-	t.BestAskSize = util.IfOrElse(len(bestAskSize) > 0, func() float64 { return util.MustFloat64(bestAskSize) }, 0)
-	t.LastPrice = util.IfOrElse(len(lastPrice) > 0, func() float64 { return util.MustFloat64(lastPrice) }, 0)
+	t.Market = market
+	t.Bid = util.IfOrElse(len(bid) > 0, func() float64 { return util.MustFloat64(bid) }, 0)
+	t.BidSize = util.IfOrElse(len(bidSize) > 0, func() float64 { return util.MustFloat64(bidSize) }, 0)
+	t.Ask = util.IfOrElse(len(ask) > 0, func() float64 { return util.MustFloat64(ask) }, 0)
+	t.AskSize = util.IfOrElse(len(askSize) > 0, func() float64 { return util.MustFloat64(askSize) }, 0)
 
 	return nil
 }

@@ -52,8 +52,8 @@ func (f *Fill) UnmarshalJSON(bytes []byte) error {
 		taker     = j["taker"].(bool)
 
 		// only available if settled is true
-		fee         = util.GetOrEmpty("fee", j)
-		feeCurrency = util.GetOrEmpty("feeCurrency", j)
+		fee         = util.GetOrEmptyString("fee", j)
+		feeCurrency = util.GetOrEmptyString("feeCurrency", j)
 	)
 
 	f.OrderId = orderId

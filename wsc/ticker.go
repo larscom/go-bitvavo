@@ -16,12 +16,12 @@ type TickerEvent struct {
 	// The market which was requested in the subscription.
 	Market string `json:"market"`
 
-	// The ticker book containing the prices.
-	TickerBook types.TickerBook `json:"tickerBook"`
+	// The ticker containing the prices.
+	Ticker types.Ticker `json:"ticker"`
 }
 
 func (t *TickerEvent) UnmarshalJSON(bytes []byte) error {
-	if err := t.TickerBook.UnmarshalJSON(bytes); err != nil {
+	if err := t.Ticker.UnmarshalJSON(bytes); err != nil {
 		return err
 	}
 
