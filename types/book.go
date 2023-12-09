@@ -6,9 +6,6 @@ import (
 )
 
 type Book struct {
-	// The market this book was requested for.
-	Market string `json:"market"`
-
 	// Integer which is increased by one for every update to the book. Useful for synchronizing. Resets to zero after restarting the matching engine.
 	Nonce int64 `json:"nonce"`
 
@@ -36,12 +33,11 @@ func (b *Book) UnmarshalJSON(bytes []byte) error {
 	if err != nil {
 		return err
 	}
-	var (
-		market = j["market"].(string)
-		nonce  = j["nonce"].(float64)
-	)
 
+	nonce := j["nonce"].(float64)
 	bidEvents := j["bids"].([]any)
+	askEvents := j["asks"].([]any)
+
 	bids := make([]Page, len(bidEvents))
 	for i := 0; i < len(bidEvents); i++ {
 		price := bidEvents[i].([]any)[0].(string)
@@ -53,7 +49,6 @@ func (b *Book) UnmarshalJSON(bytes []byte) error {
 		}
 	}
 
-	askEvents := j["asks"].([]any)
 	asks := make([]Page, len(askEvents))
 	for i := 0; i < len(askEvents); i++ {
 		price := askEvents[i].([]any)[0].(string)
@@ -65,7 +60,6 @@ func (b *Book) UnmarshalJSON(bytes []byte) error {
 		}
 	}
 
-	b.Market = market
 	b.Nonce = int64(nonce)
 	b.Bids = bids
 	b.Asks = asks

@@ -73,7 +73,7 @@ type HttpClient interface {
 	GetTrades(market string, params ...OptionalParams) ([]types.Trade, error)
 
 	// GetCandles returns the Open, High, Low, Close, Volume (OHLCV) data you use to create candlestick charts
-	// for market with interval time between each candlestick.
+	// for market with interval time between each candlestick (e.g: market=ETH-EUR interval=5m)
 	//
 	// Optionally provide extra params (see: CandleParams)
 	GetCandles(market string, interval string, params ...OptionalParams) ([]types.Candle, error)

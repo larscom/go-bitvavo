@@ -21,30 +21,23 @@ type TickerEvent struct {
 }
 
 func (t *TickerEvent) UnmarshalJSON(bytes []byte) error {
-	var tickerEvent map[string]string
+	if err := t.Ticker.UnmarshalJSON(bytes); err != nil {
+		return err
+	}
 
+	var tickerEvent map[string]string
 	err := json.Unmarshal(bytes, &tickerEvent)
 	if err != nil {
 		return err
 	}
 
 	var (
-		market      = tickerEvent["market"]
-		bestBid     = tickerEvent["bestBid"]
-		bestBidSize = tickerEvent["bestBidSize"]
-		bestAsk     = tickerEvent["bestAsk"]
-		bestAskSize = tickerEvent["bestAskSize"]
-		lastPrice   = tickerEvent["lastPrice"]
+		market = tickerEvent["market"]
+		event  = tickerEvent["event"]
 	)
 
+	t.Event = event
 	t.Market = market
-	t.Ticker = types.Ticker{
-		BestBid:     util.IfOrElse(len(bestBid) > 0, func() float64 { return util.MustFloat64(bestBid) }, 0),
-		BestBidSize: util.IfOrElse(len(bestBidSize) > 0, func() float64 { return util.MustFloat64(bestBidSize) }, 0),
-		BestAsk:     util.IfOrElse(len(bestAsk) > 0, func() float64 { return util.MustFloat64(bestAsk) }, 0),
-		BestAskSize: util.IfOrElse(len(bestAskSize) > 0, func() float64 { return util.MustFloat64(bestAskSize) }, 0),
-		LastPrice:   util.IfOrElse(len(lastPrice) > 0, func() float64 { return util.MustFloat64(lastPrice) }, 0),
-	}
 
 	return nil
 }

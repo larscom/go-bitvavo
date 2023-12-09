@@ -27,7 +27,7 @@ func main() {
 	log.Println("Trades", trades)
 
 	candles, err := client.GetCandles("ETH-EUR", "5m", &types.CandleParams{
-		Limit: 50,
+		Limit: 5,
 	})
 	if err != nil {
 		log.Panic(err)
