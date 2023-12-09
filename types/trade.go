@@ -27,7 +27,7 @@ type TradeParams struct {
 	TradeIdTo string `json:"tradeIdTo"`
 }
 
-func (t *TradeParams) ToParams() url.Values {
+func (t *TradeParams) Params() url.Values {
 	params := make(url.Values)
 	if t.Limit > 0 {
 		params.Add("limit", fmt.Sprint(t.Limit))

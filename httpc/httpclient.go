@@ -63,14 +63,20 @@ type HttpClient interface {
 	// That is, the buy and sell orders made by all Bitvavo users in a specific market (e.g: ETH-EUR).
 	// The orders in the return parameters are sorted by price
 	//
-	// Optionally provide the depth to return the top depth orders only.
+	// Optionally provide the depth (single value) to return the top depth orders only.
 	GetOrderBook(market string, depth ...uint64) (types.Book, error)
 
 	// GetTrades returns the list of all trades made by all Bitvavo users for market (e.g: ETH-EUR).
 	// That is, the trades that have been executed in the past.
 	//
-	// Optionally provide the params (see: TradeParams)
-	GetTrades(market string, params ...Params) ([]types.Trade, error)
+	// Optionally provide extra params (see: TradeParams)
+	GetTrades(market string, params ...OptionalParams) ([]types.Trade, error)
+
+	// GetCandles returns the Open, High, Low, Close, Volume (OHLCV) data you use to create candlestick charts
+	// for market with interval time between each candlestick.
+	//
+	// Optionally provide extra params (see: CandleParams)
+	GetCandles(market string, interval string, params ...OptionalParams) ([]types.Candle, error)
 }
 
 type Option func(*httpClient)
@@ -218,13 +224,30 @@ func (c *httpClient) GetOrderBook(market string, depth ...uint64) (types.Book, e
 	)
 }
 
-func (c *httpClient) GetTrades(market string, opts ...Params) ([]types.Trade, error) {
+func (c *httpClient) GetTrades(market string, opt ...OptionalParams) ([]types.Trade, error) {
 	params := make(url.Values)
-	if len(opts) > 0 {
-		params = opts[0].ToParams()
+	if len(opt) > 0 {
+		params = opt[0].Params()
 	}
 	return httpGet[[]types.Trade](
 		fmt.Sprintf("%s/%s/trades", httpUrl, market),
+		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		nil,
+	)
+}
+
+func (c *httpClient) GetCandles(market string, interval string, opt ...OptionalParams) ([]types.Candle, error) {
+	params := make(url.Values)
+	if len(opt) > 0 {
+		params = opt[0].Params()
+	}
+	params.Add("interval", interval)
+
+	return httpGet[[]types.Candle](
+		fmt.Sprintf("%s/%s/candles", httpUrl, market),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,

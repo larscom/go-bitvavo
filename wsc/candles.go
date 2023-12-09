@@ -26,6 +26,40 @@ type CandlesEvent struct {
 	Candle types.Candle `json:"candle"`
 }
 
+func (c *CandlesEvent) UnmarshalJSON(bytes []byte) error {
+	var candleEvent map[string]any
+	err := json.Unmarshal(bytes, &candleEvent)
+	if err != nil {
+		return err
+	}
+
+	var (
+		event    = candleEvent["event"].(string)
+		market   = candleEvent["market"].(string)
+		interval = candleEvent["interval"].(string)
+		candle   = candleEvent["candle"].([]any)
+	)
+
+	if len(candle) != 1 {
+		return fmt.Errorf("unexpected length: %d, expected: 1", len(candle))
+	}
+
+	candleBytes, err := json.Marshal(candle[0])
+	if err != nil {
+		return err
+	}
+
+	if err := c.Candle.UnmarshalJSON(candleBytes); err != nil {
+		return err
+	}
+
+	c.Event = event
+	c.Market = market
+	c.Interval = interval
+
+	return nil
+}
+
 type CandlesEventHandler interface {
 	// Subscribe to market with interval.
 	// You can set the buffSize for this channel.

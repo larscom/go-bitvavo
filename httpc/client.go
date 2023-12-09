@@ -15,8 +15,8 @@ import (
 	"github.com/larscom/go-bitvavo/v2/util"
 )
 
-type Params interface {
-	ToParams() url.Values
+type OptionalParams interface {
+	Params() url.Values
 }
 
 var (
