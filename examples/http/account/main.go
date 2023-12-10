@@ -17,7 +17,7 @@ func main() {
 	var (
 		key        = os.Getenv("API_KEY")
 		secret     = os.Getenv("API_SECRET")
-		client     = bitvavo.NewHttpClient(httpc.WithDebug(false))
+		client     = bitvavo.NewHttpClient(httpc.WithDebug(true))
 		authClient = client.ToAuthClient(key, secret)
 	)
 

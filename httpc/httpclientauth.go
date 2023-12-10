@@ -21,6 +21,21 @@ type HttpClientAuth interface {
 	//
 	// Optionally provide extra params (see: OrderParams)
 	GetOrders(market string, params ...OptionalParams) ([]types.Order, error)
+
+	// GetOrder returns the order by market and ID
+	GetOrder(market string, orderId string) (types.Order, error)
+
+	// CancelOrders cancels multiple orders at once.
+	// Either for an entire market (e.g: ETH-EUR) or for the entire account if you
+	// omit the market.
+	//
+	// It returns a slice of orderId's of which are canceled
+	CancelOrders(market ...string) ([]string, error)
+
+	// CancelOrder cancels a single order by ID for the specific market (e.g: ETH-EUR)
+	//
+	// It returns the canceled orderId if it was canceled
+	CancelOrder(market string, orderId string) (string, error)
 }
 
 type httpClientAuth struct {
@@ -92,4 +107,65 @@ func (c *httpClientAuth) GetOrders(market string, opt ...OptionalParams) ([]type
 		c.logDebug,
 		c.config,
 	)
+}
+
+func (c *httpClientAuth) GetOrder(market string, orderId string) (types.Order, error) {
+	params := make(url.Values)
+	params.Add("market", market)
+	params.Add("orderId", orderId)
+
+	return httpGet[types.Order](
+		fmt.Sprintf("%s/order", httpUrl),
+		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		c.config,
+	)
+}
+
+func (c *httpClientAuth) CancelOrders(market ...string) ([]string, error) {
+	params := make(url.Values)
+	if len(market) > 0 {
+		params.Add("market", market[0])
+	}
+
+	resp, err := httpDelete[[]map[string]string](
+		fmt.Sprintf("%s/orders", httpUrl),
+		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		c.config,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	orderIds := make([]string, len(resp))
+	for i := 0; i < len(orderIds); i++ {
+		orderIds[i] = resp[i]["orderId"]
+	}
+
+	return orderIds, nil
+}
+
+func (c *httpClientAuth) CancelOrder(market string, orderId string) (string, error) {
+	params := make(url.Values)
+	params.Add("market", market)
+	params.Add("orderId", orderId)
+
+	resp, err := httpDelete[map[string]string](
+		fmt.Sprintf("%s/order", httpUrl),
+		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		c.config,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	return resp["orderId"], nil
 }

@@ -128,6 +128,21 @@ type Order struct {
 
 	// Whether this order is visible on the order book.
 	Visible bool `json:"visible"`
+
+	// The fills for this order
+	Fills []Fill `json:"fills"`
+
+	// How much of this order is filled
+	FilledAmount float64 `json:"filledAmount"`
+
+	// How much of this order is filled in quote currency
+	FilledAmountQuote float64 `json:"filledAmountQuote"`
+
+	// The currency in which the fee is payed (e.g: EUR)
+	FeeCurrency string `json:"feeCurrency"`
+
+	// How much fee is payed
+	FeePaid float64 `json:feePaid""`
 }
 
 func (o *Order) UnmarshalJSON(bytes []byte) error {
@@ -185,6 +200,30 @@ func (o *Order) UnmarshalJSON(bytes []byte) error {
 	o.PostOnly = postOnly
 	o.SelfTradePrevention = selfTradePrevention
 	o.Visible = visible
+
+	var (
+		fillsAny          = GetOrEmpty[[]any]("fills", j)
+		filledAmount      = GetOrEmpty[string]("filledAmount", j)
+		filledAmountQuote = GetOrEmpty[string]("filledAmountQuote", j)
+		feeCurrency       = GetOrEmpty[string]("feeCurrency", j)
+		feePaid           = GetOrEmpty[string]("feePaid", j)
+	)
+
+	if len(fillsAny) > 0 {
+		fillsBytes, err := json.Marshal(fillsAny)
+		if err != nil {
+			return err
+		}
+		fills := make([]Fill, len(fillsAny))
+		if err := json.Unmarshal(fillsBytes, &fills); err != nil {
+			return err
+		}
+		o.Fills = fills
+	}
+	o.FilledAmount = util.IfOrElse(len(filledAmount) > 0, func() float64 { return util.MustFloat64(filledAmount) }, 0)
+	o.FilledAmountQuote = util.IfOrElse(len(filledAmountQuote) > 0, func() float64 { return util.MustFloat64(filledAmountQuote) }, 0)
+	o.FeeCurrency = feeCurrency
+	o.FeePaid = util.IfOrElse(len(feePaid) > 0, func() float64 { return util.MustFloat64(feePaid) }, 0)
 
 	return nil
 }

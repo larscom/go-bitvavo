@@ -24,6 +24,18 @@ var (
 	emptyParams = make(url.Values)
 )
 
+func httpDelete[T any](
+	url string,
+	params url.Values,
+	updateRateLimit func(ratelimit int64),
+	updateRateLimitResetAt func(resetAt time.Time),
+	logDebug func(message string, args ...any),
+	config *authConfig,
+) (T, error) {
+	req, _ := http.NewRequest("DELETE", createRequestUrl(url, params), nil)
+	return httpDo[T](req, updateRateLimit, updateRateLimitResetAt, logDebug, config)
+}
+
 func httpGet[T any](
 	url string,
 	params url.Values,
@@ -33,7 +45,6 @@ func httpGet[T any](
 	config *authConfig,
 ) (T, error) {
 	req, _ := http.NewRequest("GET", createRequestUrl(url, params), nil)
-
 	return httpDo[T](req, updateRateLimit, updateRateLimitResetAt, logDebug, config)
 }
 
@@ -50,7 +61,6 @@ func httpPost[T any](
 	if err != nil {
 		return body, err
 	}
-
 	req, _ := http.NewRequest("POST", createRequestUrl(url, params), bytes.NewBuffer(payload))
 	return httpDo[T](req, updateRateLimit, updateRateLimitResetAt, logDebug, config)
 }
@@ -83,15 +93,16 @@ func httpDo[T any](
 		return empty, unwrapErr(response)
 	}
 
-	return unwrapBody[T](response)
+	return unwrapBody[T](response, logDebug)
 }
 
-func unwrapBody[T any](response *http.Response) (T, error) {
+func unwrapBody[T any](response *http.Response, logDebug func(message string, args ...any)) (T, error) {
 	var data T
 	bytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		return data, err
 	}
+	logDebug("received response", "body", string(bytes))
 
 	if err := json.Unmarshal(bytes, &data); err != nil {
 		return data, err
