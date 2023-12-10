@@ -22,6 +22,10 @@ type HttpClientAuth interface {
 	// Optionally provide extra params (see: OrderParams)
 	GetOrders(market string, params ...OptionalParams) ([]types.Order, error)
 
+	// GetOrdersOpen returns all open orders for market (e.g: ETH-EUR) or all open orders
+	// if no market is given.
+	GetOrdersOpen(market ...string) ([]types.Order, error)
+
 	// GetOrder returns the order by market and ID
 	GetOrder(market string, orderId string) (types.Order, error)
 
@@ -101,6 +105,22 @@ func (c *httpClientAuth) GetOrders(market string, opt ...OptionalParams) ([]type
 
 	return httpGet[[]types.Order](
 		fmt.Sprintf("%s/orders", httpUrl),
+		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		c.config,
+	)
+}
+
+func (c *httpClientAuth) GetOrdersOpen(market ...string) ([]types.Order, error) {
+	params := make(url.Values)
+	if len(market) > 0 {
+		params.Add("market", market[0])
+	}
+
+	return httpGet[[]types.Order](
+		fmt.Sprintf("%s/ordersOpen", httpUrl),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
