@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"time"
@@ -210,13 +211,13 @@ func (o *Order) UnmarshalJSON(bytes []byte) error {
 	)
 
 	if len(fillsAny) > 0 {
-		fillsBytes, err := json.Marshal(fillsAny)
-		if err != nil {
-			return err
-		}
 		fills := make([]Fill, len(fillsAny))
-		if err := json.Unmarshal(fillsBytes, &fills); err != nil {
-			return err
+		for i := 0; i < len(fillsAny); i++ {
+			if fill, ok := fillsAny[i].(Fill); ok {
+				fills[i] = fill
+			} else {
+				return errors.New("could not convert to fill")
+			}
 		}
 		o.Fills = fills
 	}
