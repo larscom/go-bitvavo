@@ -49,6 +49,86 @@ func (o *OrderParams) Params() url.Values {
 	return params
 }
 
+type OrderCreate struct {
+	// The market in which the order should be placed (e.g: ETH-EUR)
+	Market string `json:"market"`
+
+	// When placing a buy order the base currency will be bought for the quote currency. When placing a sell order the base currency will be sold for the quote currency.
+	//
+	// Enum: "buy" | "sell"
+	Side string `json:"side"`
+
+	// For limit orders, amount and price are required. For market orders either amount or amountQuote is required.
+	//
+	// Enum: "market" | "limit" | "stopLoss" | "stopLossLimit" | "takeProfit" | "takeProfitLimit"
+	OrderType string `json:"orderType"`
+
+	// Specifies the amount of the base asset that will be bought/sold.
+	Amount float64 `json:"amount,omitempty"`
+
+	// Only for limit orders: Specifies the amount in quote currency that is paid/received for each unit of base currency.
+	Price float64 `json:"price,omitempty"`
+
+	// Only for market orders: If amountQuote is specified, [amountQuote] of the quote currency will be bought/sold for the best price available.
+	AmountQuote float64 `json:"amountQuote,omitempty"`
+
+	// Only for stop orders: Specifies the amount that is used with the triggerType.
+	// Combine this parameter with triggerType and triggerReference to create the desired trigger.
+	TriggerAmount float64 `json:"triggerAmount,omitempty"`
+
+	// Only for stop orders: Only allows price for now. A triggerAmount of 4000 and a triggerType of price will generate a triggerPrice of 4000.
+	// Combine this parameter with triggerAmount and triggerReference to create the desired trigger.
+	//
+	// Enum: "price"
+	TriggerType string `json:"triggerType,omitempty"`
+
+	// Only for stop orders: Use this to determine which parameter will trigger the order.
+	// Combine this parameter with triggerAmount and triggerType to create the desired trigger.
+	//
+	// Enum: "lastTrade" | "bestBid" | "bestAsk" | "midPrice"
+	TriggerReference string `json:"triggerReference,omitempty"`
+
+	// Only for limit orders: Determines how long orders remain active.
+	// Possible values: Good-Til-Canceled (GTC), Immediate-Or-Cancel (IOC), Fill-Or-Kill (FOK).
+	// GTC orders will remain on the order book until they are filled or canceled.
+	// IOC orders will fill against existing orders, but will cancel any remaining amount after that.
+	// FOK orders will fill against existing orders in its entirety, or will be canceled (if the entire order cannot be filled).
+	//
+	// Enum: "GTC" | "IOC" | "FOK"
+	// Default: "GTC"
+	TimeInForce string `json:"timeInForce,omitempty"`
+
+	// Self trading is not allowed on Bitvavo. Multiple options are available to prevent this from happening.
+	// The default ‘decrementAndCancel’ decrements both orders by the amount that would have been filled, which in turn cancels the smallest of the two orders.
+	// ‘cancelOldest’ will cancel the entire older order and places the new order.
+	// ‘cancelNewest’ will cancel the order that is submitted.
+	// ‘cancelBoth’ will cancel both the current and the old order.
+	// Default: "decrementAndCancel"
+	//
+	// Enum: "decrementAndCancel" | "cancelOldest" | "cancelNewest" | "cancelBoth"
+	// Default: "decrementAndCancel"
+	SelfTradePrevention string `json:"selfTradePrevention,omitempty"`
+
+	// Only for limit orders: When postOnly is set to true, the order will not fill against existing orders.
+	// This is useful if you want to ensure you pay the maker fee. If the order would fill against existing orders, the entire order will be canceled.
+	//
+	// Default: false
+	PostOnly bool `json:"postOnly,omitempty"`
+
+	// Only for market orders: In order to protect clients from filling market orders with undesirable prices,
+	// the remainder of market orders will be canceled once the next fill price is 10% worse than the best fill price (best bid/ask at first match).
+	// If you wish to disable this protection, set this value to ‘true’.
+	//
+	// Default: false
+	DisableMarketProtection bool `json:"disableMarketProtection,omitempty"`
+
+	// If this is set to 'true', all order information is returned.
+	// Set this to 'false' when only an acknowledgement of success or failure is required, this is faster.
+	//
+	// Default: true
+	ResponseRequired bool `json:"responseRequired,omitempty"`
+}
+
 type Order struct {
 	// The order id of the returned order.
 	OrderId string `json:"orderId"`
@@ -74,7 +154,7 @@ type Order struct {
 	Side string `json:"side"`
 
 	// OrderType
-	// Enum: "limit" | "market"
+	// Enum: "market" | "limit" | "stopLoss" | "stopLossLimit" | "takeProfit" | "takeProfitLimit"
 	OrderType string `json:"orderType"`
 
 	// Original amount.
@@ -99,6 +179,7 @@ type Order struct {
 	TriggerAmount float64 `json:"triggerAmount"`
 
 	// Only for stop orders.
+	//
 	// Enum: "price"
 	TriggerType string `json:"triggerType"`
 
@@ -111,6 +192,7 @@ type Order struct {
 	// GTC orders will remain on the order book until they are filled or canceled.
 	// IOC orders will fill against existing orders, but will cancel any remaining amount after that.
 	// FOK orders will fill against existing orders in its entirety, or will be canceled (if the entire order cannot be filled).
+	//
 	// Enum: "GTC" | "IOC" | "FOK"
 	TimeInForce string `json:"timeInForce"`
 
@@ -122,6 +204,7 @@ type Order struct {
 	// ‘cancelOldest’ will cancel the entire older order and places the new order.
 	// ‘cancelNewest’ will cancel the order that is submitted.
 	// ‘cancelBoth’ will cancel both the current and the old order.
+	//
 	// Default: "decrementAndCancel"
 	// Enum: "decrementAndCancel" | "cancelOldest" | "cancelNewest" | "cancelBoth"
 	SelfTradePrevention string `json:"selfTradePrevention"`

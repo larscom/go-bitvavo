@@ -50,7 +50,7 @@ func httpGet[T any](
 
 func httpPost[T any](
 	url string,
-	body T,
+	body any,
 	params url.Values,
 	updateRateLimit func(ratelimit int64),
 	updateRateLimitResetAt func(resetAt time.Time),
@@ -59,8 +59,11 @@ func httpPost[T any](
 ) (T, error) {
 	payload, err := json.Marshal(body)
 	if err != nil {
-		return body, err
+		var empty T
+		return empty, err
 	}
+	logDebug("created payload", "payload", string(payload))
+
 	req, _ := http.NewRequest("POST", createRequestUrl(url, params), bytes.NewBuffer(payload))
 	return httpDo[T](req, updateRateLimit, updateRateLimitResetAt, logDebug, config)
 }

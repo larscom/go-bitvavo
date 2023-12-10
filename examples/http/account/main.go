@@ -21,33 +21,42 @@ func main() {
 		authClient = client.ToAuthClient(key, secret)
 	)
 
-	balance, err := authClient.GetBalance("ETH")
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Balance", balance)
+	// balance, err := authClient.GetBalance("ETH")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println("Balance", balance)
 
-	account, err := authClient.GetAccount()
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Account", account)
+	// account, err := authClient.GetAccount()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println("Account", account)
 
-	ratelimit := client.GetRateLimit()
-	resetAt := client.GetRateLimitResetAt()
-	log.Println("RateLimit", ratelimit, "ResetAt", resetAt)
+	// ratelimit := client.GetRateLimit()
+	// resetAt := client.GetRateLimitResetAt()
+	// log.Println("RateLimit", ratelimit, "ResetAt", resetAt)
 
-	orders, err := authClient.GetOrders("ETH-EUR", &types.OrderParams{
-		Limit: 1,
+	// orders, err := authClient.GetOrders("ETH-EUR", &types.OrderParams{
+	// 	Limit: 1,
+	// })
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println("Orders", orders)
+
+	// openOrders, err := authClient.GetOrdersOpen("ETH-EUR")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println("OpenOrders", openOrders)
+
+	order, err := authClient.CreateOrder("ETH-EUR", "sell", "limit", types.OrderCreate{
+		Amount: 0.1,
+		Price:  20000,
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Orders", orders)
-
-	openOrders, err := authClient.GetOrdersOpen("ETH-EUR")
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("OpenOrders", openOrders)
+	log.Println("Order placed", order)
 }
