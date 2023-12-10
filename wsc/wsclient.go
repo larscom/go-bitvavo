@@ -23,6 +23,7 @@ var (
 	ErrNoSubscriptionActive      = errors.New("no subscription active")
 	ErrSubscriptionAlreadyActive = errors.New("subscription already active")
 	ErrAuthenticationFailed      = errors.New("could not subscribe, authentication failed")
+	ErrEventHandler              = errors.New("could not handle event")
 )
 
 type EventHandler[T any] interface {
@@ -70,6 +71,7 @@ type wsClient struct {
 	conn           *websocket.Conn
 	writechn       chan WebSocketMessage
 	debug          bool
+	errchn         chan<- error
 
 	// public
 	candlesEventHandler   *candlesEventHandler
@@ -111,6 +113,13 @@ type Option func(*wsClient)
 func WithDebug(debug bool) Option {
 	return func(ws *wsClient) {
 		ws.debug = debug
+	}
+}
+
+// Receive websocket connection errors (e.g. reconnect error, auth error, write failed, read failed)
+func WithErrorChannel(errchn chan<- error) Option {
+	return func(ws *wsClient) {
+		ws.errchn = errchn
 	}
 }
 
@@ -187,6 +196,10 @@ func (ws *wsClient) Account(apiKey string, apiSecret string) AccountEventHandler
 func (ws *wsClient) Close() error {
 	close(ws.writechn)
 
+	if ws.hasErrorChannel() {
+		close(ws.errchn)
+	}
+
 	return ws.conn.Close()
 }
 
@@ -210,6 +223,9 @@ func (ws *wsClient) writeLoop() {
 	for msg := range ws.writechn {
 		if err := ws.conn.WriteJSON(msg); err != nil {
 			log.Logger().Error("Write failed", "error", err.Error())
+			if ws.hasErrorChannel() {
+				ws.errchn <- err
+			}
 		}
 	}
 }
@@ -222,6 +238,10 @@ func (ws *wsClient) readLoop() {
 		if err != nil {
 			defer ws.reconnect()
 			log.Logger().Error("Read failed", "error", err.Error())
+			if ws.hasErrorChannel() {
+				ws.errchn <- err
+			}
+
 			return
 		}
 		ws.handleMessage(bytes)
@@ -242,6 +262,9 @@ func (ws *wsClient) reconnect() {
 
 		ws.reconnectCount += 1
 		log.Logger().Error("Reconnect failed, retrying in 1 second", "count", ws.reconnectCount)
+		if ws.hasErrorChannel() {
+			ws.errchn <- err
+		}
 		time.Sleep(time.Second)
 		return
 	}
@@ -307,6 +330,10 @@ func (ws *wsClient) handlError(err *types.BitvavoErr) {
 	default:
 		log.Logger().Error("Could not handle error", "action", err.Action, "code", err.Code, "message", err.Message)
 	}
+
+	if ws.hasErrorChannel() {
+		ws.errchn <- err
+	}
 }
 
 func (ws *wsClient) handleEvent(e *BaseEvent, bytes []byte) {
@@ -339,6 +366,9 @@ func (ws *wsClient) handleEvent(e *BaseEvent, bytes []byte) {
 
 	default:
 		log.Logger().Error("Could not handle event, invalid parameters provided?")
+		if ws.hasErrorChannel() {
+			ws.errchn <- ErrEventHandler
+		}
 	}
 }
 
@@ -412,6 +442,10 @@ func (ws *wsClient) handleAuthEvent(bytes []byte) {
 	if ws.hasAccountHandler() {
 		ws.accountEventHandler.handleAuthMessage(bytes)
 	}
+}
+
+func (ws *wsClient) hasErrorChannel() bool {
+	return ws.errchn != nil
 }
 
 func (ws *wsClient) hasCandleHandler() bool {
