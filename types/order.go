@@ -153,31 +153,48 @@ func (o *Order) UnmarshalJSON(bytes []byte) error {
 	}
 
 	var (
-		orderId             = j["orderId"].(string)
-		market              = j["market"].(string)
-		created             = j["created"].(float64)
-		updated             = j["updated"].(float64)
-		status              = j["status"].(string)
-		side                = j["side"].(string)
-		orderType           = j["orderType"].(string)
-		amount              = j["amount"].(string)
-		amountRemaining     = j["amountRemaining"].(string)
-		price               = j["price"].(string)
-		onHold              = j["onHold"].(string)
-		onHoldCurrency      = j["onHoldCurrency"].(string)
-		timeInForce         = j["timeInForce"].(string)
-		postOnly            = j["postOnly"].(bool)
-		selfTradePrevention = j["selfTradePrevention"].(string)
-		visible             = j["visible"].(bool)
-
-		clientOrderId = GetOrEmpty[string]("clientOrderId", j)
+		orderId             = GetOrEmpty[string]("orderId", j)
+		clientOrderId       = GetOrEmpty[string]("clientOrderId", j)
+		market              = GetOrEmpty[string]("market", j)
+		created             = GetOrEmpty[float64]("created", j)
+		updated             = GetOrEmpty[float64]("updated", j)
+		status              = GetOrEmpty[string]("status", j)
+		side                = GetOrEmpty[string]("side", j)
+		orderType           = GetOrEmpty[string]("orderType", j)
+		amount              = GetOrEmpty[string]("amount", j)
+		amountRemaining     = GetOrEmpty[string]("amountRemaining", j)
+		price               = GetOrEmpty[string]("price", j)
+		onHold              = GetOrEmpty[string]("onHold", j)
+		onHoldCurrency      = GetOrEmpty[string]("onHoldCurrency", j)
+		timeInForce         = GetOrEmpty[string]("timeInForce", j)
+		postOnly            = GetOrEmpty[bool]("postOnly", j)
+		selfTradePrevention = GetOrEmpty[string]("selfTradePrevention", j)
+		visible             = GetOrEmpty[bool]("visible", j)
 
 		// only for stop orders
 		triggerPrice     = GetOrEmpty[string]("triggerPrice", j)
 		triggerAmount    = GetOrEmpty[string]("triggerAmount", j)
 		triggerType      = GetOrEmpty[string]("triggerType", j)
 		triggerReference = GetOrEmpty[string]("triggerReference", j)
+
+		fillsAny          = GetOrEmpty[[]any]("fills", j)
+		filledAmount      = GetOrEmpty[string]("filledAmount", j)
+		filledAmountQuote = GetOrEmpty[string]("filledAmountQuote", j)
+		feeCurrency       = GetOrEmpty[string]("feeCurrency", j)
+		feePaid           = GetOrEmpty[string]("feePaid", j)
 	)
+
+	if len(fillsAny) > 0 {
+		fillsBytes, err := json.Marshal(fillsAny)
+		if err != nil {
+			return err
+		}
+		fills := make([]Fill, len(fillsAny))
+		if err := json.Unmarshal(fillsBytes, &fills); err != nil {
+			return err
+		}
+		o.Fills = fills
+	}
 
 	o.OrderId = orderId
 	o.ClientOrderId = clientOrderId
@@ -200,26 +217,6 @@ func (o *Order) UnmarshalJSON(bytes []byte) error {
 	o.PostOnly = postOnly
 	o.SelfTradePrevention = selfTradePrevention
 	o.Visible = visible
-
-	var (
-		fillsAny          = GetOrEmpty[[]any]("fills", j)
-		filledAmount      = GetOrEmpty[string]("filledAmount", j)
-		filledAmountQuote = GetOrEmpty[string]("filledAmountQuote", j)
-		feeCurrency       = GetOrEmpty[string]("feeCurrency", j)
-		feePaid           = GetOrEmpty[string]("feePaid", j)
-	)
-
-	if len(fillsAny) > 0 {
-		fillsBytes, err := json.Marshal(fillsAny)
-		if err != nil {
-			return err
-		}
-		fills := make([]Fill, len(fillsAny))
-		if err := json.Unmarshal(fillsBytes, &fills); err != nil {
-			return err
-		}
-		o.Fills = fills
-	}
 	o.FilledAmount = util.IfOrElse(len(filledAmount) > 0, func() float64 { return util.MustFloat64(filledAmount) }, 0)
 	o.FilledAmountQuote = util.IfOrElse(len(filledAmountQuote) > 0, func() float64 { return util.MustFloat64(filledAmountQuote) }, 0)
 	o.FeeCurrency = feeCurrency

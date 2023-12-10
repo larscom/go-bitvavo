@@ -49,17 +49,17 @@ func (m *Asset) UnmarshalJSON(bytes []byte) error {
 	}
 
 	var (
-		symbol               = j["symbol"].(string)
-		name                 = j["name"].(string)
-		decimals             = j["decimals"].(float64)
-		depositFee           = j["depositFee"].(string)
-		depositConfirmations = j["depositConfirmations"].(float64)
-		depositStatus        = j["depositStatus"].(string)
-		withdrawalFee        = j["withdrawalFee"].(string)
-		withdrawalMinAmount  = j["withdrawalMinAmount"].(string)
-		withdrawalStatus     = j["withdrawalStatus"].(string)
-		networksAny          = j["networks"].([]any)
-		message              = j["message"].(string)
+		symbol               = GetOrEmpty[string]("symbol", j)
+		name                 = GetOrEmpty[string]("name", j)
+		decimals             = GetOrEmpty[float64]("decimals", j)
+		depositFee           = GetOrEmpty[string]("depositFee", j)
+		depositConfirmations = GetOrEmpty[float64]("depositConfirmations", j)
+		depositStatus        = GetOrEmpty[string]("depositStatus", j)
+		withdrawalFee        = GetOrEmpty[string]("withdrawalFee", j)
+		withdrawalMinAmount  = GetOrEmpty[string]("withdrawalMinAmount", j)
+		withdrawalStatus     = GetOrEmpty[string]("withdrawalStatus", j)
+		networksAny          = GetOrEmpty[[]any]("networks", j)
+		message              = GetOrEmpty[string]("message", j)
 	)
 
 	networks := make([]string, len(networksAny))
@@ -70,11 +70,11 @@ func (m *Asset) UnmarshalJSON(bytes []byte) error {
 	m.Symbol = symbol
 	m.Name = name
 	m.Decimals = int64(decimals)
-	m.DepositFee = util.MustFloat64(depositFee)
+	m.DepositFee = util.IfOrElse(len(depositFee) > 0, func() float64 { return util.MustFloat64(depositFee) }, 0)
 	m.DepositConfirmations = int64(depositConfirmations)
 	m.DepositStatus = depositStatus
-	m.WithdrawalFee = util.MustFloat64(withdrawalFee)
-	m.WithdrawalMinAmount = util.MustFloat64(withdrawalMinAmount)
+	m.WithdrawalFee = util.IfOrElse(len(withdrawalFee) > 0, func() float64 { return util.MustFloat64(withdrawalFee) }, 0)
+	m.WithdrawalMinAmount = util.IfOrElse(len(withdrawalMinAmount) > 0, func() float64 { return util.MustFloat64(withdrawalMinAmount) }, 0)
 	m.WithdrawalStatus = withdrawalStatus
 	m.Networks = networks
 	m.Message = message

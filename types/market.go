@@ -48,16 +48,16 @@ func (m *Market) UnmarshalJSON(bytes []byte) error {
 	}
 
 	var (
-		market               = j["market"].(string)
-		status               = j["status"].(string)
-		base                 = j["base"].(string)
-		quote                = j["quote"].(string)
-		pricePrecision       = j["pricePrecision"].(float64)
-		minOrderInBaseAsset  = j["minOrderInBaseAsset"].(string)
-		minOrderInQuoteAsset = j["minOrderInQuoteAsset"].(string)
-		maxOrderInBaseAsset  = j["maxOrderInBaseAsset"].(string)
-		maxOrderInQuoteAsset = j["maxOrderInQuoteAsset"].(string)
-		orderTypesAny        = j["orderTypes"].([]any)
+		market               = GetOrEmpty[string]("market", j)
+		status               = GetOrEmpty[string]("status", j)
+		base                 = GetOrEmpty[string]("base", j)
+		quote                = GetOrEmpty[string]("quote", j)
+		pricePrecision       = GetOrEmpty[float64]("pricePrecision", j)
+		minOrderInBaseAsset  = GetOrEmpty[string]("minOrderInBaseAsset", j)
+		minOrderInQuoteAsset = GetOrEmpty[string]("minOrderInQuoteAsset", j)
+		maxOrderInBaseAsset  = GetOrEmpty[string]("maxOrderInBaseAsset", j)
+		maxOrderInQuoteAsset = GetOrEmpty[string]("maxOrderInQuoteAsset", j)
+		orderTypesAny        = GetOrEmpty[[]any]("orderTypes", j)
 	)
 
 	orderTypes := make([]string, len(orderTypesAny))
@@ -70,10 +70,10 @@ func (m *Market) UnmarshalJSON(bytes []byte) error {
 	m.Base = base
 	m.Quote = quote
 	m.PricePrecision = int64(pricePrecision)
-	m.MinOrderInBaseAsset = util.MustFloat64(minOrderInBaseAsset)
-	m.MinOrderInQuoteAsset = util.MustFloat64(minOrderInQuoteAsset)
-	m.MaxOrderInBaseAsset = util.MustFloat64(maxOrderInBaseAsset)
-	m.MaxOrderInQuoteAsset = util.MustFloat64(maxOrderInQuoteAsset)
+	m.MinOrderInBaseAsset = util.IfOrElse(len(minOrderInBaseAsset) > 0, func() float64 { return util.MustFloat64(minOrderInBaseAsset) }, 0)
+	m.MinOrderInQuoteAsset = util.IfOrElse(len(minOrderInQuoteAsset) > 0, func() float64 { return util.MustFloat64(minOrderInQuoteAsset) }, 0)
+	m.MaxOrderInBaseAsset = util.IfOrElse(len(maxOrderInBaseAsset) > 0, func() float64 { return util.MustFloat64(maxOrderInBaseAsset) }, 0)
+	m.MaxOrderInQuoteAsset = util.IfOrElse(len(maxOrderInQuoteAsset) > 0, func() float64 { return util.MustFloat64(maxOrderInQuoteAsset) }, 0)
 	m.OrderTypes = orderTypes
 
 	return nil

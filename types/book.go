@@ -34,9 +34,9 @@ func (b *Book) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 
-	nonce := j["nonce"].(float64)
-	bidEvents := j["bids"].([]any)
-	askEvents := j["asks"].([]any)
+	nonce := GetOrEmpty[float64]("nonce", j)
+	bidEvents := GetOrEmpty[[]any]("bids", j)
+	askEvents := GetOrEmpty[[]any]("asks", j)
 
 	bids := make([]Page, len(bidEvents))
 	for i := 0; i < len(bidEvents); i++ {
