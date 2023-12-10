@@ -31,7 +31,7 @@ import "github.com/larscom/go-bitvavo/v2"
 
 ## 🌐 HTTP client
 
-The HTTP client is limited at the moment, it'll will grow with more functionality over time.
+### Public endpoints
 
 ```go
 func main() {
@@ -42,6 +42,24 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println(time)
+}
+
+```
+
+### Private endpoints
+
+```go
+func main() {
+	client := bitvavo.NewHttpClient()
+
+	// create a new auth client for authenticated requests
+	authClient = client.ToAuthClient("MY_API_KEY", "MY_API_SECRET")
+
+	balance, err := authClient.GetBalance("ETH")
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Balance", balance)
 }
 
 ```
