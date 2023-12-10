@@ -1,3 +1,8 @@
+# setup for examples
+init:
+	go work init ./examples	
+	go mod download
+
 # ws
 ticker:
 	go run ./examples/ws/ticker/main.go	

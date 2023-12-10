@@ -1,9 +1,53 @@
 package types
 
 import (
+	"fmt"
+	"net/url"
+	"time"
+
 	"github.com/goccy/go-json"
 	"github.com/larscom/go-bitvavo/v2/util"
 )
+
+type OrderParams struct {
+	// Return the limit most recent orders only.
+	// Default: 500
+	Limit uint64 `json:"limit"`
+
+	// Return orders after start time.
+	Start time.Time `json:"start"`
+
+	// Return orders before end time.
+	End time.Time `json:"end"`
+
+	// Filter used to limit the returned results.
+	// All orders after this order ID are returned (i.e. showing those later in time).
+	OrderIdFrom string `json:"orderIdFrom"`
+
+	// Filter used to limit the returned results.
+	// All orders up to this order ID are returned (i.e. showing those earlier in time).
+	OrderIdTo string `json:"orderIdTo"`
+}
+
+func (o *OrderParams) Params() url.Values {
+	params := make(url.Values)
+	if o.Limit > 0 {
+		params.Add("limit", fmt.Sprint(o.Limit))
+	}
+	if !o.Start.IsZero() {
+		params.Add("start", fmt.Sprint(o.Start.UnixMilli()))
+	}
+	if !o.End.IsZero() {
+		params.Add("end", fmt.Sprint(o.End.UnixMilli()))
+	}
+	if o.OrderIdFrom != "" {
+		params.Add("orderIdFrom", o.OrderIdFrom)
+	}
+	if o.OrderIdTo != "" {
+		params.Add("orderIdTo", o.OrderIdTo)
+	}
+	return params
+}
 
 type Order struct {
 	// The order id of the returned order.
@@ -111,13 +155,13 @@ func (o *Order) UnmarshalJSON(bytes []byte) error {
 		selfTradePrevention = j["selfTradePrevention"].(string)
 		visible             = j["visible"].(bool)
 
-		clientOrderId = util.GetOrEmpty[string]("clientOrderId", j)
+		clientOrderId = GetOrEmpty[string]("clientOrderId", j)
 
 		// only for stop orders
-		triggerPrice     = util.GetOrEmpty[string]("triggerPrice", j)
-		triggerAmount    = util.GetOrEmpty[string]("triggerAmount", j)
-		triggerType      = util.GetOrEmpty[string]("triggerType", j)
-		triggerReference = util.GetOrEmpty[string]("triggerReference", j)
+		triggerPrice     = GetOrEmpty[string]("triggerPrice", j)
+		triggerAmount    = GetOrEmpty[string]("triggerAmount", j)
+		triggerType      = GetOrEmpty[string]("triggerType", j)
+		triggerReference = GetOrEmpty[string]("triggerReference", j)
 	)
 
 	o.OrderId = orderId

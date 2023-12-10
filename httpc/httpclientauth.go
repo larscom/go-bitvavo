@@ -16,6 +16,11 @@ type HttpClientAuth interface {
 
 	// GetAccount returns trading volume and fees for account.
 	GetAccount() (types.Account, error)
+
+	// GetOrders returns data for multiple orders at once for market (e.g: ETH-EUR)
+	//
+	// Optionally provide extra params (see: OrderParams)
+	GetOrders(market string, params ...OptionalParams) ([]types.Order, error)
 }
 
 type httpClientAuth struct {
@@ -65,6 +70,23 @@ func (c *httpClientAuth) GetAccount() (types.Account, error) {
 	return httpGet[types.Account](
 		fmt.Sprintf("%s/account", httpUrl),
 		emptyParams,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		c.config,
+	)
+}
+
+func (c *httpClientAuth) GetOrders(market string, opt ...OptionalParams) ([]types.Order, error) {
+	params := make(url.Values)
+	if len(opt) > 0 {
+		params = opt[0].Params()
+	}
+	params.Add("market", market)
+
+	return httpGet[[]types.Order](
+		fmt.Sprintf("%s/orders", httpUrl),
+		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
 		c.logDebug,
