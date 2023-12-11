@@ -22,6 +22,7 @@ type OptionalParams interface {
 var (
 	client      = http.DefaultClient
 	emptyParams = make(url.Values)
+	emptyBody   = make([]byte, 0)
 )
 
 func httpDelete[T any](
@@ -33,7 +34,7 @@ func httpDelete[T any](
 	config *authConfig,
 ) (T, error) {
 	req, _ := http.NewRequest("DELETE", createRequestUrl(url, params), nil)
-	return httpDo[T](req, updateRateLimit, updateRateLimitResetAt, logDebug, config)
+	return httpDo[T](req, emptyBody, updateRateLimit, updateRateLimitResetAt, logDebug, config)
 }
 
 func httpGet[T any](
@@ -45,7 +46,7 @@ func httpGet[T any](
 	config *authConfig,
 ) (T, error) {
 	req, _ := http.NewRequest("GET", createRequestUrl(url, params), nil)
-	return httpDo[T](req, updateRateLimit, updateRateLimitResetAt, logDebug, config)
+	return httpDo[T](req, emptyBody, updateRateLimit, updateRateLimitResetAt, logDebug, config)
 }
 
 func httpPost[T any](
@@ -62,14 +63,35 @@ func httpPost[T any](
 		var empty T
 		return empty, err
 	}
-	logDebug("created payload", "payload", string(payload))
+	logDebug("created request body", "body", string(payload))
 
 	req, _ := http.NewRequest("POST", createRequestUrl(url, params), bytes.NewBuffer(payload))
-	return httpDo[T](req, updateRateLimit, updateRateLimitResetAt, logDebug, config)
+	return httpDo[T](req, payload, updateRateLimit, updateRateLimitResetAt, logDebug, config)
+}
+
+func httpPut[T any](
+	url string,
+	body any,
+	params url.Values,
+	updateRateLimit func(ratelimit int64),
+	updateRateLimitResetAt func(resetAt time.Time),
+	logDebug func(message string, args ...any),
+	config *authConfig,
+) (T, error) {
+	payload, err := json.Marshal(body)
+	if err != nil {
+		var empty T
+		return empty, err
+	}
+	logDebug("created request body", "body", string(payload))
+
+	req, _ := http.NewRequest("PUT", createRequestUrl(url, params), bytes.NewBuffer(payload))
+	return httpDo[T](req, payload, updateRateLimit, updateRateLimitResetAt, logDebug, config)
 }
 
 func httpDo[T any](
 	request *http.Request,
+	body []byte,
 	updateRateLimit func(ratelimit int64),
 	updateRateLimitResetAt func(resetAt time.Time),
 	logDebug func(message string, args ...any),
@@ -78,7 +100,7 @@ func httpDo[T any](
 	logDebug("executing request", "method", request.Method, "url", request.URL.String())
 
 	var empty T
-	if err := applyHeaders(request, config); err != nil {
+	if err := applyHeaders(request, body, config); err != nil {
 		return empty, err
 	}
 
@@ -149,19 +171,11 @@ func updateRateLimits(
 	return nil
 }
 
-func applyHeaders(request *http.Request, config *authConfig) error {
+func applyHeaders(request *http.Request, body []byte, config *authConfig) error {
 	if config == nil {
 		return nil
 	}
 
-	body := make([]byte, 0)
-	if request.Body != nil {
-		bytes, err := io.ReadAll(request.Body)
-		if err != nil {
-			return err
-		}
-		body = append(body, bytes...)
-	}
 	timestamp := time.Now().UnixMilli()
 
 	request.Header.Set("Accept", "application/json")

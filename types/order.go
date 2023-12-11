@@ -49,7 +49,7 @@ func (o *OrderParams) Params() url.Values {
 	return params
 }
 
-type OrderCreate struct {
+type OrderNew struct {
 	// The market in which the order should be placed (e.g: ETH-EUR)
 	Market string `json:"market"`
 
@@ -129,12 +129,66 @@ type OrderCreate struct {
 	ResponseRequired bool `json:"responseRequired,omitempty"`
 }
 
+type OrderUpdate struct {
+	// The market for which an order should be updated
+	Market string `json:"market"`
+
+	// The id of the order which should be updated
+	OrderId string `json:"orderId"`
+
+	// Updates amount to this value (and also changes amountRemaining accordingly).
+	Amount float64 `json:"amount,omitempty"`
+
+	// Only for market orders: If amountQuote is specified, [amountQuote] of the quote currency will be bought/sold for the best price available.
+	AmountQuote float64 `json:"amountQuote,omitempty"`
+
+	// Updates amountRemaining to this value (and also changes amount accordingly).
+	AmountRemaining float64 `json:"amountRemaining,omitempty"`
+
+	// Specifies the amount in quote currency that is paid/received for each unit of base currency.
+	Price float64 `json:"price,omitempty"`
+
+	// Only for stop orders: Specifies the amount that is used with the triggerType.
+	// Combine this parameter with triggerType and triggerReference to create the desired trigger.
+	TriggerAmount float64 `json:"triggerAmount,omitempty"`
+
+	// Only for limit orders: Determines how long orders remain active.
+	// Possible values: Good-Til-Canceled (GTC), Immediate-Or-Cancel (IOC), Fill-Or-Kill (FOK).
+	// GTC orders will remain on the order book until they are filled or canceled.
+	// IOC orders will fill against existing orders, but will cancel any remaining amount after that.
+	// FOK orders will fill against existing orders in its entirety, or will be canceled (if the entire order cannot be filled).
+	//
+	// Enum: "GTC" | "IOC" | "FOK"
+	// Default: "GTC"
+	TimeInForce string `json:"timeInForce,omitempty"`
+
+	// Self trading is not allowed on Bitvavo. Multiple options are available to prevent this from happening.
+	// The default ‘decrementAndCancel’ decrements both orders by the amount that would have been filled, which in turn cancels the smallest of the two orders.
+	// ‘cancelOldest’ will cancel the entire older order and places the new order.
+	// ‘cancelNewest’ will cancel the order that is submitted.
+	// ‘cancelBoth’ will cancel both the current and the old order.
+	// Default: "decrementAndCancel"
+	//
+	// Enum: "decrementAndCancel" | "cancelOldest" | "cancelNewest" | "cancelBoth"
+	// Default: "decrementAndCancel"
+	SelfTradePrevention string `json:"selfTradePrevention,omitempty"`
+
+	// Only for limit orders: When postOnly is set to true, the order will not fill against existing orders.
+	// This is useful if you want to ensure you pay the maker fee. If the order would fill against existing orders, the entire order will be canceled.
+	//
+	// Default: false
+	PostOnly bool `json:"postOnly,omitempty"`
+
+	// If this is set to 'true', all order information is returned.
+	// Set this to 'false' when only an acknowledgement of success or failure is required, this is faster.
+	//
+	// Default: true
+	ResponseRequired bool `json:"responseRequired,omitempty"`
+}
+
 type Order struct {
 	// The order id of the returned order.
 	OrderId string `json:"orderId"`
-
-	// The personalized UUID for this orderId in this market.
-	ClientOrderId string `json:"clientOrderId"`
 
 	// The market in which the order was placed.
 	Market string `json:"market"`
@@ -237,7 +291,6 @@ func (o *Order) UnmarshalJSON(bytes []byte) error {
 
 	var (
 		orderId             = GetOrEmpty[string]("orderId", j)
-		clientOrderId       = GetOrEmpty[string]("clientOrderId", j)
 		market              = GetOrEmpty[string]("market", j)
 		created             = GetOrEmpty[float64]("created", j)
 		updated             = GetOrEmpty[float64]("updated", j)
@@ -280,7 +333,6 @@ func (o *Order) UnmarshalJSON(bytes []byte) error {
 	}
 
 	o.OrderId = orderId
-	o.ClientOrderId = clientOrderId
 	o.Market = market
 	o.Created = int64(created)
 	o.Updated = int64(updated)

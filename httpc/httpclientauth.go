@@ -41,10 +41,15 @@ type HttpClientAuth interface {
 	// It returns the canceled orderId if it was canceled
 	CancelOrder(market string, orderId string) (string, error)
 
-	// CreateOrder places a new order on the exchange.
+	// NewOrder places a new order on the exchange.
 	//
-	// It returns the created order if it was succesfully created
-	CreateOrder(market string, side string, orderType string, order types.OrderCreate) (types.Order, error)
+	// It returns the new order if it was succesfully created
+	NewOrder(market string, side string, orderType string, order types.OrderNew) (types.Order, error)
+
+	// UpdateOrder updates an existing order on the exchange.
+	//
+	// It returns the updated order if it was succesfully updated
+	UpdateOrder(market string, orderId string, order types.OrderUpdate) (types.Order, error)
 }
 
 type httpClientAuth struct {
@@ -195,11 +200,26 @@ func (c *httpClientAuth) CancelOrder(market string, orderId string) (string, err
 	return resp["orderId"], nil
 }
 
-func (c *httpClientAuth) CreateOrder(market string, side string, orderType string, order types.OrderCreate) (types.Order, error) {
+func (c *httpClientAuth) NewOrder(market string, side string, orderType string, order types.OrderNew) (types.Order, error) {
 	order.Market = market
 	order.Side = side
 	order.OrderType = orderType
 	return httpPost[types.Order](
+		fmt.Sprintf("%s/order", httpUrl),
+		order,
+		emptyParams,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.logDebug,
+		c.config,
+	)
+}
+
+func (c *httpClientAuth) UpdateOrder(market string, orderId string, order types.OrderUpdate) (types.Order, error) {
+	order.Market = market
+	order.OrderId = orderId
+
+	return httpPut[types.Order](
 		fmt.Sprintf("%s/order", httpUrl),
 		order,
 		emptyParams,
