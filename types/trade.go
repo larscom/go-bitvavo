@@ -47,6 +47,8 @@ func (t *TradeParams) Params() url.Values {
 	return params
 }
 
+type TradeHistoric Fill
+
 type Trade struct {
 	// The trade ID of the returned trade (UUID).
 	Id string `json:"id"`

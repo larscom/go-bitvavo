@@ -50,4 +50,10 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println("OpenOrders", openOrders)
+
+	trades, err := authClient.GetTrades("ETH-EUR")
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Trades", trades)
 }
