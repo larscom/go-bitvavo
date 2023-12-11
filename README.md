@@ -10,11 +10,11 @@ Go Bitvavo is a **thread-safe** client written in GO to interact with the Bitvav
 ## 📒 Features
 
 - [x] WebSocket Client -- Read only (100%)
-- [ ] Http Client (~60%) -- Read / Write
+- [ ] Http Client (~80%) -- Read / Write
   - [x] Market data endpoints
   - [x] Account endpoints
   - [x] Synchronization endpoints
-  - [ ] Trading endpoints
+  - [x] Trading endpoints
   - [ ] Transfer endpoints
 
 ## 🚀 Installation
