@@ -83,6 +83,25 @@ func (t *ticker24hEventHandler) Subscribe(market string, buffSize ...uint64) (<-
 	return chn, nil
 }
 
+func (t *ticker24hEventHandler) SubscribeToMarkets(markets []string, buffSize ...uint64) (<-chan Ticker24hEvent, error) {
+	for _, market := range markets {
+		if t.subs.Has(market) {
+			return nil, newErrSubscriptionAlreadyActive(market)
+		}
+	}
+
+	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTicker24h, markets...)
+
+	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, DefaultBuffSize)
+
+	chn := make(chan Ticker24hEvent, size)
+	for _, market := range markets {
+		t.subs.Set(market, chn)
+	}
+
+	return chn, nil
+}
+
 func (t *ticker24hEventHandler) Unsubscribe(market string) error {
 	sub, exist := t.subs.Get(market)
 

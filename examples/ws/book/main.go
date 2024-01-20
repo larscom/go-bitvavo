@@ -12,12 +12,27 @@ func main() {
 		log.Fatal(err)
 	}
 
-	bookchn, err := ws.Book().Subscribe("ETH-EUR")
-	if err != nil {
-		log.Fatal(err)
-	}
+	go func() {
+		bookchn, err := ws.Book().Subscribe("ETH-EUR")
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	for bookEvent := range bookchn {
-		log.Println(bookEvent)
-	}
+		for bookEvent := range bookchn {
+			log.Println(bookEvent)
+		}
+	}()
+
+	go func() {
+		bookchn, err := ws.Book().SubscribeToMarkets([]string{"ETH-EUR", "BTC-EUR"})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for bookEvent := range bookchn {
+			log.Println(bookEvent)
+		}
+	}()
+
+	select {}
 }

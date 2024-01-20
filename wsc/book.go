@@ -69,6 +69,25 @@ func (t *bookEventHandler) Subscribe(market string, buffSize ...uint64) (<-chan 
 	return chn, nil
 }
 
+func (t *bookEventHandler) SubscribeToMarkets(markets []string, buffSize ...uint64) (<-chan BookEvent, error) {
+	for _, market := range markets {
+		if t.subs.Has(market) {
+			return nil, newErrSubscriptionAlreadyActive(market)
+		}
+	}
+
+	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameBook, markets...)
+
+	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, DefaultBuffSize)
+
+	chn := make(chan BookEvent, size)
+	for _, market := range markets {
+		t.subs.Set(market, chn)
+	}
+
+	return chn, nil
+}
+
 func (t *bookEventHandler) Unsubscribe(market string) error {
 	sub, exist := t.subs.Get(market)
 

@@ -2,6 +2,7 @@ package wsc
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -34,6 +35,8 @@ type EventHandler[T any] interface {
 	//
 	// Default buffSize: 50
 	Subscribe(market string, buffSize ...uint64) (<-chan T, error)
+
+	SubscribeToMarkets(markets []string, buffSize ...uint64) (<-chan T, error)
 
 	// Unsubscribe from market.
 	Unsubscribe(market string) error
@@ -293,13 +296,13 @@ func (ws *wsClient) reconnect() {
 	}
 }
 
-func newWebSocketMessage(action Action, channelName ChannelName, market string) WebSocketMessage {
+func newWebSocketMessage(action Action, channelName ChannelName, market ...string) WebSocketMessage {
 	return WebSocketMessage{
 		Action: action.Value,
 		Channels: []Channel{
 			{
 				Name:    channelName.Value,
-				Markets: []string{market},
+				Markets: market,
 			},
 		},
 	}
@@ -476,4 +479,8 @@ func (ws *wsClient) logDebug(message string, args ...any) {
 	if ws.debug {
 		log.Logger().Debug(message, args...)
 	}
+}
+
+func newErrSubscriptionAlreadyActive(market string) error {
+	return fmt.Errorf("subscription already active for market %s", market)
 }
