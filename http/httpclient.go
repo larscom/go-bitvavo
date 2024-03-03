@@ -2,14 +2,13 @@ package http
 
 import (
 	"fmt"
-	"log/slog"
 	"net/url"
-	"os"
 	"sync"
 	"time"
 
 	"github.com/larscom/go-bitvavo/v2/types"
 	"github.com/larscom/go-bitvavo/v2/util"
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -111,9 +110,8 @@ type httpClient struct {
 }
 
 func NewHttpClient(options ...Option) HttpClient {
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	})))
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	zerolog.SetGlobalLevel(zerolog.WarnLevel)
 
 	client := &httpClient{
 		ratelimit: -1,
@@ -128,9 +126,7 @@ func NewHttpClient(options ...Option) HttpClient {
 // Enable debug logging.
 func WithDebug() Option {
 	return func(c *httpClient) {
-		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		})))
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
 }
 

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/larscom/go-bitvavo/v2/crypto"
 	"github.com/larscom/go-bitvavo/v2/types"
 	"github.com/larscom/go-bitvavo/v2/util"
+	"github.com/rs/zerolog/log"
 )
 
 type OptionalParams interface {
@@ -61,7 +61,7 @@ func httpPost[T any](
 		var empty T
 		return empty, err
 	}
-	slog.Debug("created request body", "body", string(payload))
+	log.Debug().Str("body", string(payload)).Msg("created request body")
 
 	req, _ := http.NewRequest("POST", createRequestUrl(url, params), bytes.NewBuffer(payload))
 	return httpDo[T](req, payload, updateRateLimit, updateRateLimitResetAt, config)
@@ -80,7 +80,7 @@ func httpPut[T any](
 		var empty T
 		return empty, err
 	}
-	slog.Debug("created request body", "body", string(payload))
+	log.Debug().Str("body", string(payload)).Msg("created request body")
 
 	req, _ := http.NewRequest("PUT", createRequestUrl(url, params), bytes.NewBuffer(payload))
 	return httpDo[T](req, payload, updateRateLimit, updateRateLimitResetAt, config)
@@ -93,7 +93,7 @@ func httpDo[T any](
 	updateRateLimitResetAt func(resetAt time.Time),
 	config *authConfig,
 ) (T, error) {
-	slog.Debug("executing request", "method", request.Method, "url", request.URL.String())
+	log.Debug().Str("method", request.Method).Str("url", request.URL.String()).Msg("executing request")
 
 	var empty T
 	if err := applyHeaders(request, body, config); err != nil {
@@ -123,7 +123,7 @@ func unwrapBody[T any](response *http.Response) (T, error) {
 	if err != nil {
 		return data, err
 	}
-	slog.Debug("received response", "body", string(bytes))
+	log.Debug().Str("body", string(bytes)).Msg("received response")
 
 	if err := json.Unmarshal(bytes, &data); err != nil {
 		return data, err

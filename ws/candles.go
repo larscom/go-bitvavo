@@ -2,11 +2,11 @@ package ws
 
 import (
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/larscom/go-bitvavo/v2/types"
 	"github.com/larscom/go-bitvavo/v2/util"
+	"github.com/rs/zerolog/log"
 
 	"github.com/goccy/go-json"
 	"github.com/smallnest/safemap"
@@ -145,7 +145,7 @@ func (c *candlesEventHandler) UnsubscribeAll() error {
 func (c *candlesEventHandler) handleMessage(bytes []byte) {
 	var candleEvent *CandlesEvent
 	if err := json.Unmarshal(bytes, &candleEvent); err != nil {
-		slog.Error("Couldn't unmarshal message into CandlesEvent", "message", string(bytes))
+		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into CandlesEvent")
 	} else {
 		var (
 			market   = candleEvent.Market
@@ -157,7 +157,7 @@ func (c *candlesEventHandler) handleMessage(bytes []byte) {
 		if exist {
 			chn <- *candleEvent
 		} else {
-			slog.Error("There is no active subscription", "handler", "candles", "market", market, "interval", interval)
+			log.Error().Str("market", market).Msg("There is no active subscription to handle this CandlesEvent")
 		}
 	}
 }

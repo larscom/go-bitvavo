@@ -1,11 +1,11 @@
 package ws
 
 import (
-	"log/slog"
 	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/larscom/go-bitvavo/v2/crypto"
+	"github.com/rs/zerolog/log"
 
 	"github.com/larscom/go-bitvavo/v2/types"
 	"github.com/larscom/go-bitvavo/v2/util"
@@ -201,7 +201,7 @@ func (t *accountEventHandler) UnsubscribeAll() error {
 func (t *accountEventHandler) handleOrderMessage(bytes []byte) {
 	var orderEvent *OrderEvent
 	if err := json.Unmarshal(bytes, &orderEvent); err != nil {
-		slog.Error("Couldn't unmarshal message into OrderEvent", "message", string(bytes))
+		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into OrderEvent")
 	} else if t.hasOrderChn(orderEvent.Market) {
 		sub, _ := t.subs.Get(orderEvent.Market)
 		sub.orderchn <- *orderEvent
@@ -211,7 +211,7 @@ func (t *accountEventHandler) handleOrderMessage(bytes []byte) {
 func (t *accountEventHandler) handleFillMessage(bytes []byte) {
 	var fillEvent *FillEvent
 	if err := json.Unmarshal(bytes, &fillEvent); err != nil {
-		slog.Error("Couldn't unmarshal message into FillEvent", "message", string(bytes))
+		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into FillEvent")
 	} else if t.hasFillChn(fillEvent.Market) {
 		sub, _ := t.subs.Get(fillEvent.Market)
 		sub.fillchn <- *fillEvent
@@ -221,7 +221,7 @@ func (t *accountEventHandler) handleFillMessage(bytes []byte) {
 func (t *accountEventHandler) handleAuthMessage(bytes []byte) {
 	var authEvent *AuthEvent
 	if err := json.Unmarshal(bytes, &authEvent); err != nil {
-		slog.Error("Couldn't unmarshal message into AuthEvent", "message", string(bytes))
+		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into AuthEvent")
 		t.authchn <- false
 	} else {
 		t.authchn <- authEvent.Authenticated
@@ -251,7 +251,7 @@ func (t *accountEventHandler) reconnect() {
 		if err := t.withAuth(func() {
 			t.writechn <- newWebSocketMessage(actionSubscribe, channelNameAccount, market)
 		}); err != nil {
-			slog.Error("Failed to reconnect the account websocket", "market", market)
+			log.Err(err).Str("market", market).Msg("Failed to reconnect the account websocket")
 		}
 	}
 }

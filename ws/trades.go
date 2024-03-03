@@ -1,9 +1,8 @@
 package ws
 
 import (
-	"log/slog"
-
 	"github.com/larscom/go-bitvavo/v2/types"
+	"github.com/rs/zerolog/log"
 
 	"github.com/goccy/go-json"
 	"github.com/larscom/go-bitvavo/v2/util"
@@ -96,14 +95,14 @@ func (t *tradesEventHandler) UnsubscribeAll() error {
 func (t *tradesEventHandler) handleMessage(bytes []byte) {
 	var tradeEvent *TradesEvent
 	if err := json.Unmarshal(bytes, &tradeEvent); err != nil {
-		slog.Error("Couldn't unmarshal message into TradesEvent", "message", string(bytes))
+		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into TradesEvent")
 	} else {
 		market := tradeEvent.Market
 		chn, exist := t.subs.Get(market)
 		if exist {
 			chn <- *tradeEvent
 		} else {
-			slog.Error("There is no active subscription", "handler", "trades", "market", market)
+			log.Error().Str("market", market).Msg("There is no active subscription to handle this TradesEvent")
 		}
 	}
 }
