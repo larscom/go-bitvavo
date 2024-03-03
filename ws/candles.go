@@ -105,12 +105,12 @@ func (c *candlesEventHandler) Subscribe(market string, interval string, buffSize
 
 	key := createKey(market, interval)
 	if c.subs.Has(key) {
-		return nil, ErrSubscriptionAlreadyActive
+		return nil, errSubscriptionAlreadyActive
 	}
 
 	c.writechn <- newCandleWebSocketMessage(actionSubscribe, market, interval)
 
-	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, DefaultBuffSize)
+	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
 
 	chn := make(chan CandlesEvent, size)
 	c.subs.Set(key, chn)
@@ -129,7 +129,7 @@ func (c *candlesEventHandler) Unsubscribe(market string, interval string) error 
 		return nil
 	}
 
-	return ErrNoSubscriptionActive
+	return errNoSubscriptionActive
 }
 
 func (c *candlesEventHandler) UnsubscribeAll() error {

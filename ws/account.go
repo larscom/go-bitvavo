@@ -100,7 +100,7 @@ type accountSub struct {
 }
 
 func (a *accountSub) Order(buffSize ...uint64) <-chan OrderEvent {
-	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, DefaultBuffSize)
+	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
 
 	orderchn := make(chan OrderEvent, size)
 	a.orderchn = orderchn
@@ -109,7 +109,7 @@ func (a *accountSub) Order(buffSize ...uint64) <-chan OrderEvent {
 }
 
 func (a *accountSub) Fill(buffSize ...uint64) <-chan FillEvent {
-	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, DefaultBuffSize)
+	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
 
 	fillchn := make(chan FillEvent, size)
 	a.fillchn = fillchn
@@ -149,7 +149,7 @@ func newAccountEventHandler(apiKey string, apiSecret string, writechn chan<- Web
 
 func (t *accountEventHandler) Subscribe(market string) (AccountSubscription, error) {
 	if t.subs.Has(market) {
-		return nil, ErrSubscriptionAlreadyActive
+		return nil, errSubscriptionAlreadyActive
 	}
 
 	if err := t.withAuth(func() {
@@ -185,7 +185,7 @@ func (t *accountEventHandler) Unsubscribe(market string) error {
 		return nil
 	}
 
-	return ErrNoSubscriptionActive
+	return errNoSubscriptionActive
 }
 
 func (t *accountEventHandler) UnsubscribeAll() error {
@@ -266,7 +266,7 @@ func (t *accountEventHandler) withAuth(action func()) error {
 		return nil
 	}
 
-	return ErrAuthenticationFailed
+	return errAuthenticationFailed
 }
 
 func (t *accountEventHandler) hasOrderChn(market string) bool {

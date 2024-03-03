@@ -57,12 +57,12 @@ func newBookEventHandler(writechn chan<- WebSocketMessage) *bookEventHandler {
 
 func (t *bookEventHandler) Subscribe(market string, buffSize ...uint64) (<-chan BookEvent, error) {
 	if t.subs.Has(market) {
-		return nil, ErrSubscriptionAlreadyActive
+		return nil, errSubscriptionAlreadyActive
 	}
 
 	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameBook, market)
 
-	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, DefaultBuffSize)
+	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
 
 	chn := make(chan BookEvent, size)
 	t.subs.Set(market, chn)
@@ -80,7 +80,7 @@ func (t *bookEventHandler) Unsubscribe(market string) error {
 		return nil
 	}
 
-	return ErrNoSubscriptionActive
+	return errNoSubscriptionActive
 }
 
 func (t *bookEventHandler) UnsubscribeAll() error {

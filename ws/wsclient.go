@@ -17,14 +17,14 @@ const (
 	wsUrl            = "wss://ws.bitvavo.com/v2"
 	readLimit        = 655350
 	handshakeTimeout = 45 * time.Second
+	defaultBuffSize  = 50
 )
-const DefaultBuffSize = 50
 
 var (
-	ErrNoSubscriptionActive      = errors.New("no subscription active")
-	ErrSubscriptionAlreadyActive = errors.New("subscription already active")
-	ErrAuthenticationFailed      = errors.New("could not subscribe, authentication failed")
-	ErrEventHandler              = errors.New("could not handle event")
+	errNoSubscriptionActive      = errors.New("no subscription active")
+	errSubscriptionAlreadyActive = errors.New("subscription already active")
+	errAuthenticationFailed      = errors.New("could not subscribe, authentication failed")
+	errEventHandler              = errors.New("could not handle event")
 )
 
 type EventHandler[T any] interface {
@@ -371,7 +371,7 @@ func (ws *wsClient) handleEvent(e *BaseEvent, bytes []byte) {
 	default:
 		slog.Error("Could not handle event, invalid parameters provided?")
 		if ws.hasErrorChannel() {
-			ws.errchn <- ErrEventHandler
+			ws.errchn <- errEventHandler
 		}
 	}
 }

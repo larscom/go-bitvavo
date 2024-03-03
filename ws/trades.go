@@ -57,12 +57,12 @@ func newTradesEventHandler(writechn chan<- WebSocketMessage) *tradesEventHandler
 
 func (t *tradesEventHandler) Subscribe(market string, buffSize ...uint64) (<-chan TradesEvent, error) {
 	if t.subs.Has(market) {
-		return nil, ErrSubscriptionAlreadyActive
+		return nil, errSubscriptionAlreadyActive
 	}
 
 	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTrades, market)
 
-	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, DefaultBuffSize)
+	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
 
 	chn := make(chan TradesEvent, size)
 	t.subs.Set(market, chn)
@@ -80,7 +80,7 @@ func (t *tradesEventHandler) Unsubscribe(market string) error {
 		return nil
 	}
 
-	return ErrNoSubscriptionActive
+	return errNoSubscriptionActive
 }
 
 func (t *tradesEventHandler) UnsubscribeAll() error {
