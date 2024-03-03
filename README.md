@@ -81,6 +81,37 @@ By default, the websocket handler will try to reconnect to the websocket when th
 For each subscription you can set the buffer size for the underlying channel. All channels have a default buffer size of `50` which should be
 sufficient in most cases. You may need to increase this number if you have a **large** amount of subscriptions.
 
+## 🔧 Options
+
+### Debugging
+
+You can enable debug logging by providing an option to the Websocket constructor
+
+```go
+ws, err := bitvavo.NewWsClient(ws.WithDebug())
+```
+
+### Auto Reconnect
+
+You can disable auto reconnecting to the websocket by providing an option to the Websocket constructor
+
+```go
+ws, err := bitvavo.NewWsClient(ws.WithAutoReconnect(false))
+```
+
+### Error Channel
+
+You can provide your own error channel if you wish to receive errors (e.g. reconnect error, auth error, write failed, read failed)
+
+```go
+errchn := make(chan error)
+ws, _ := bitvavo.NewWsClient(ws.WithErrorChannel(errchn))
+
+for err := range errchn {
+	log.Println(err)
+}
+```
+
 ### Public Subscriptions
 
 Public subscriptions requires no authentication and can be used directly.
@@ -389,34 +420,3 @@ type FillEvent struct {
 ```
 
 </details>
-
-## 🔧 Options
-
-### Debugging
-
-You can enable debug logging by providing an option to the Websocket constructor
-
-```go
-ws, err := bitvavo.NewWsClient(ws.WithDebug())
-```
-
-### Auto Reconnect
-
-You can disable auto reconnecting to the websocket by providing an option to the Websocket constructor
-
-```go
-ws, err := bitvavo.NewWsClient(ws.WithAutoReconnect(false))
-```
-
-### Error Channel
-
-You can provide your own error channel if you wish to receive errors (e.g. reconnect error, auth error, write failed, read failed)
-
-```go
-errchn := make(chan error)
-ws, _ := bitvavo.NewWsClient(ws.WithErrorChannel(errchn))
-
-for err := range errchn {
-	log.Println(err)
-}
-```
