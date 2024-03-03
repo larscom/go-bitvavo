@@ -1,4 +1,4 @@
-package httpc
+package http
 
 import (
 	"bytes"
@@ -177,7 +177,7 @@ func applyHeaders(request *http.Request, body []byte, config *authConfig) error 
 	request.Header.Set("Accept", "application/json")
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set(headerAccessKey, config.apiKey)
-	request.Header.Set(headerAccessSignature, crypto.CreateSignature(request.Method, strings.Replace(request.URL.String(), httpUrl, "", 1), body, timestamp, config.apiSecret))
+	request.Header.Set(headerAccessSignature, crypto.CreateSignature(request.Method, strings.Replace(request.URL.String(), bitvavoURL, "", 1), body, timestamp, config.apiSecret))
 	request.Header.Set(headerAccessTimestamp, fmt.Sprint(timestamp))
 	request.Header.Set(headerAccessWindow, fmt.Sprint(config.windowTimeMs))
 

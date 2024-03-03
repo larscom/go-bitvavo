@@ -4,11 +4,11 @@ import (
 	"log"
 
 	"github.com/larscom/go-bitvavo/v2"
-	"github.com/larscom/go-bitvavo/v2/wsc"
+	"github.com/larscom/go-bitvavo/v2/ws"
 )
 
 func main() {
-	ws, err := bitvavo.NewWsClient(wsc.WithDebug())
+	ws, err := bitvavo.NewWsClient(ws.WithDebug())
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -31,6 +31,16 @@ import "github.com/larscom/go-bitvavo/v2"
 
 ## 🌐 HTTP client
 
+## 🔧 Options
+
+### Debugging
+
+You can enable debug logging by providing an option to the HttpClient constructor
+
+```go
+client := bitvavo.NewHttpClient(http.WithDebug())
+```
+
 ### Public endpoints
 
 ```go
@@ -387,7 +397,7 @@ type FillEvent struct {
 You can enable debug logging by providing an option to the Websocket constructor
 
 ```go
-ws, err := bitvavo.NewWsClient(wsc.WithDebug())
+ws, err := bitvavo.NewWsClient(ws.WithDebug())
 ```
 
 ### Auto Reconnect
@@ -395,7 +405,7 @@ ws, err := bitvavo.NewWsClient(wsc.WithDebug())
 You can disable auto reconnecting to the websocket by providing an option to the Websocket constructor
 
 ```go
-ws, err := bitvavo.NewWsClient(wsc.WithAutoReconnect(false))
+ws, err := bitvavo.NewWsClient(ws.WithAutoReconnect(false))
 ```
 
 ### Error Channel
@@ -404,7 +414,7 @@ You can provide your own error channel if you wish to receive errors (e.g. recon
 
 ```go
 errchn := make(chan error)
-ws, _ := bitvavo.NewWsClient(wsc.WithErrorChannel(errchn))
+ws, _ := bitvavo.NewWsClient(ws.WithErrorChannel(errchn))
 
 for err := range errchn {
 	log.Println(err)

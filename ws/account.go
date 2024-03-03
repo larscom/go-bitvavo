@@ -1,4 +1,4 @@
-package wsc
+package ws
 
 import (
 	"log/slog"

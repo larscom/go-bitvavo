@@ -48,16 +48,16 @@ func (m *Market) UnmarshalJSON(bytes []byte) error {
 	}
 
 	var (
-		market               = GetOrEmpty[string]("market", j)
-		status               = GetOrEmpty[string]("status", j)
-		base                 = GetOrEmpty[string]("base", j)
-		quote                = GetOrEmpty[string]("quote", j)
-		pricePrecision       = GetOrEmpty[float64]("pricePrecision", j)
-		minOrderInBaseAsset  = GetOrEmpty[string]("minOrderInBaseAsset", j)
-		minOrderInQuoteAsset = GetOrEmpty[string]("minOrderInQuoteAsset", j)
-		maxOrderInBaseAsset  = GetOrEmpty[string]("maxOrderInBaseAsset", j)
-		maxOrderInQuoteAsset = GetOrEmpty[string]("maxOrderInQuoteAsset", j)
-		orderTypesAny        = GetOrEmpty[[]any]("orderTypes", j)
+		market               = getOrEmpty[string]("market", j)
+		status               = getOrEmpty[string]("status", j)
+		base                 = getOrEmpty[string]("base", j)
+		quote                = getOrEmpty[string]("quote", j)
+		pricePrecision       = getOrEmpty[float64]("pricePrecision", j)
+		minOrderInBaseAsset  = getOrEmpty[string]("minOrderInBaseAsset", j)
+		minOrderInQuoteAsset = getOrEmpty[string]("minOrderInQuoteAsset", j)
+		maxOrderInBaseAsset  = getOrEmpty[string]("maxOrderInBaseAsset", j)
+		maxOrderInQuoteAsset = getOrEmpty[string]("maxOrderInQuoteAsset", j)
+		orderTypesAny        = getOrEmpty[[]any]("orderTypes", j)
 	)
 
 	orderTypes := make([]string, len(orderTypesAny))

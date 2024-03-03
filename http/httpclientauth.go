@@ -1,4 +1,4 @@
-package httpc
+package http
 
 import (
 	"fmt"
@@ -88,7 +88,7 @@ func (c *httpClientAuth) GetBalance(symbol ...string) ([]types.Balance, error) {
 	}
 
 	return httpGet[[]types.Balance](
-		fmt.Sprintf("%s/balance", httpUrl),
+		fmt.Sprintf("%s/balance", bitvavoURL),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -98,7 +98,7 @@ func (c *httpClientAuth) GetBalance(symbol ...string) ([]types.Balance, error) {
 
 func (c *httpClientAuth) GetAccount() (types.Account, error) {
 	return httpGet[types.Account](
-		fmt.Sprintf("%s/account", httpUrl),
+		fmt.Sprintf("%s/account", bitvavoURL),
 		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -114,7 +114,7 @@ func (c *httpClientAuth) GetOrders(market string, opt ...OptionalParams) ([]type
 	params.Add("market", market)
 
 	return httpGet[[]types.Order](
-		fmt.Sprintf("%s/orders", httpUrl),
+		fmt.Sprintf("%s/orders", bitvavoURL),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -129,7 +129,7 @@ func (c *httpClientAuth) GetOrdersOpen(market ...string) ([]types.Order, error) 
 	}
 
 	return httpGet[[]types.Order](
-		fmt.Sprintf("%s/ordersOpen", httpUrl),
+		fmt.Sprintf("%s/ordersOpen", bitvavoURL),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -143,7 +143,7 @@ func (c *httpClientAuth) GetOrder(market string, orderId string) (types.Order, e
 	params.Add("orderId", orderId)
 
 	return httpGet[types.Order](
-		fmt.Sprintf("%s/order", httpUrl),
+		fmt.Sprintf("%s/order", bitvavoURL),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -158,7 +158,7 @@ func (c *httpClientAuth) CancelOrders(market ...string) ([]string, error) {
 	}
 
 	resp, err := httpDelete[[]map[string]string](
-		fmt.Sprintf("%s/orders", httpUrl),
+		fmt.Sprintf("%s/orders", bitvavoURL),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -182,7 +182,7 @@ func (c *httpClientAuth) CancelOrder(market string, orderId string) (string, err
 	params.Add("orderId", orderId)
 
 	resp, err := httpDelete[map[string]string](
-		fmt.Sprintf("%s/order", httpUrl),
+		fmt.Sprintf("%s/order", bitvavoURL),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -200,7 +200,7 @@ func (c *httpClientAuth) NewOrder(market string, side string, orderType string, 
 	order.Side = side
 	order.OrderType = orderType
 	return httpPost[types.Order](
-		fmt.Sprintf("%s/order", httpUrl),
+		fmt.Sprintf("%s/order", bitvavoURL),
 		order,
 		emptyParams,
 		c.updateRateLimit,
@@ -214,7 +214,7 @@ func (c *httpClientAuth) UpdateOrder(market string, orderId string, order types.
 	order.OrderId = orderId
 
 	return httpPut[types.Order](
-		fmt.Sprintf("%s/order", httpUrl),
+		fmt.Sprintf("%s/order", bitvavoURL),
 		order,
 		emptyParams,
 		c.updateRateLimit,
@@ -231,7 +231,7 @@ func (c *httpClientAuth) GetTrades(market string, opt ...OptionalParams) ([]type
 	params.Add("market", market)
 
 	return httpGet[[]types.TradeHistoric](
-		fmt.Sprintf("%s/trades", httpUrl),
+		fmt.Sprintf("%s/trades", bitvavoURL),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,

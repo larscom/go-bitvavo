@@ -76,11 +76,11 @@ func (t *Trade) UnmarshalJSON(bytes []byte) error {
 	}
 
 	var (
-		id        = GetOrEmpty[string]("id", j)
-		amount    = GetOrEmpty[string]("amount", j)
-		price     = GetOrEmpty[string]("price", j)
-		side      = GetOrEmpty[string]("side", j)
-		timestamp = GetOrEmpty[float64]("timestamp", j)
+		id        = getOrEmpty[string]("id", j)
+		amount    = getOrEmpty[string]("amount", j)
+		price     = getOrEmpty[string]("price", j)
+		side      = getOrEmpty[string]("side", j)
+		timestamp = getOrEmpty[float64]("timestamp", j)
 	)
 
 	t.Id = id

@@ -49,17 +49,17 @@ func (m *Asset) UnmarshalJSON(bytes []byte) error {
 	}
 
 	var (
-		symbol               = GetOrEmpty[string]("symbol", j)
-		name                 = GetOrEmpty[string]("name", j)
-		decimals             = GetOrEmpty[float64]("decimals", j)
-		depositFee           = GetOrEmpty[string]("depositFee", j)
-		depositConfirmations = GetOrEmpty[float64]("depositConfirmations", j)
-		depositStatus        = GetOrEmpty[string]("depositStatus", j)
-		withdrawalFee        = GetOrEmpty[string]("withdrawalFee", j)
-		withdrawalMinAmount  = GetOrEmpty[string]("withdrawalMinAmount", j)
-		withdrawalStatus     = GetOrEmpty[string]("withdrawalStatus", j)
-		networksAny          = GetOrEmpty[[]any]("networks", j)
-		message              = GetOrEmpty[string]("message", j)
+		symbol               = getOrEmpty[string]("symbol", j)
+		name                 = getOrEmpty[string]("name", j)
+		decimals             = getOrEmpty[float64]("decimals", j)
+		depositFee           = getOrEmpty[string]("depositFee", j)
+		depositConfirmations = getOrEmpty[float64]("depositConfirmations", j)
+		depositStatus        = getOrEmpty[string]("depositStatus", j)
+		withdrawalFee        = getOrEmpty[string]("withdrawalFee", j)
+		withdrawalMinAmount  = getOrEmpty[string]("withdrawalMinAmount", j)
+		withdrawalStatus     = getOrEmpty[string]("withdrawalStatus", j)
+		networksAny          = getOrEmpty[[]any]("networks", j)
+		message              = getOrEmpty[string]("message", j)
 	)
 
 	networks := make([]string, len(networksAny))

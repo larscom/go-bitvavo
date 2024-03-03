@@ -47,18 +47,18 @@ func (f *Fill) UnmarshalJSON(bytes []byte) error {
 	}
 
 	var (
-		fillId = GetOrEmpty[string]("fillId", j)
-		id     = GetOrEmpty[string]("id", j)
+		fillId = getOrEmpty[string]("fillId", j)
+		id     = getOrEmpty[string]("id", j)
 
-		orderId     = GetOrEmpty[string]("orderId", j)
-		timestamp   = GetOrEmpty[float64]("timestamp", j)
-		amount      = GetOrEmpty[string]("amount", j)
-		side        = GetOrEmpty[string]("side", j)
-		price       = GetOrEmpty[string]("price", j)
-		taker       = GetOrEmpty[bool]("taker", j)
-		fee         = GetOrEmpty[string]("fee", j)
-		feeCurrency = GetOrEmpty[string]("feeCurrency", j)
-		settled     = GetOrEmpty[bool]("settled", j)
+		orderId     = getOrEmpty[string]("orderId", j)
+		timestamp   = getOrEmpty[float64]("timestamp", j)
+		amount      = getOrEmpty[string]("amount", j)
+		side        = getOrEmpty[string]("side", j)
+		price       = getOrEmpty[string]("price", j)
+		taker       = getOrEmpty[bool]("taker", j)
+		fee         = getOrEmpty[string]("fee", j)
+		feeCurrency = getOrEmpty[string]("feeCurrency", j)
+		settled     = getOrEmpty[bool]("settled", j)
 	)
 
 	f.OrderId = orderId

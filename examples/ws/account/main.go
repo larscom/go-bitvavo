@@ -6,7 +6,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/larscom/go-bitvavo/v2"
-	"github.com/larscom/go-bitvavo/v2/wsc"
+	"github.com/larscom/go-bitvavo/v2/ws"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func main() {
 	key := os.Getenv("API_KEY")
 	secret := os.Getenv("API_SECRET")
 
-	ws, err := bitvavo.NewWsClient(wsc.WithDebug())
+	ws, err := bitvavo.NewWsClient(ws.WithDebug())
 	if err != nil {
 		log.Fatal(err)
 	}

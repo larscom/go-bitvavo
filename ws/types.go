@@ -1,4 +1,4 @@
-package wsc
+package ws
 
 import "github.com/orsinium-labs/enum"
 

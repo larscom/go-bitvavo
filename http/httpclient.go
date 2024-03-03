@@ -1,4 +1,4 @@
-package httpc
+package http
 
 import (
 	"fmt"
@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	httpUrl         = "https://api.bitvavo.com/v2"
-	maxWindowTimeMs = 60000
+	bitvavoURL          = "https://api.bitvavo.com/v2"
+	maxWindowTimeMs     = 60000
+	defaultWindowTimeMs = 10000
 
 	headerRatelimit        = "Bitvavo-Ratelimit-Remaining"
 	headerRatelimitResetAt = "Bitvavo-Ratelimit-Resetat"
@@ -23,7 +24,6 @@ const (
 	headerAccessTimestamp  = "Bitvavo-Access-Timestamp"
 	headerAccessWindow     = "Bitvavo-Access-Window"
 )
-const DefaultWindowTimeMs = 10000
 
 type HttpClient interface {
 	// ToAuthClient returns a client for authenticated requests.
@@ -141,7 +141,7 @@ func (c *httpClient) ToAuthClient(apiKey string, apiSecret string, windowTimeMs 
 
 	windowTime := util.IfOrElse(len(windowTimeMs) > 0, func() uint64 { return windowTimeMs[0] }, 0)
 	if windowTime == 0 {
-		windowTime = DefaultWindowTimeMs
+		windowTime = defaultWindowTimeMs
 	}
 	if windowTime > maxWindowTimeMs {
 		windowTime = maxWindowTimeMs
@@ -167,7 +167,7 @@ func (c *httpClient) GetRateLimitResetAt() time.Time {
 
 func (c *httpClient) GetTime() (int64, error) {
 	resp, err := httpGet[map[string]float64](
-		fmt.Sprintf("%s/time", httpUrl),
+		fmt.Sprintf("%s/time", bitvavoURL),
 		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -182,7 +182,7 @@ func (c *httpClient) GetTime() (int64, error) {
 
 func (c *httpClient) GetMarkets() ([]types.Market, error) {
 	return httpGet[[]types.Market](
-		fmt.Sprintf("%s/markets", httpUrl),
+		fmt.Sprintf("%s/markets", bitvavoURL),
 		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -195,7 +195,7 @@ func (c *httpClient) GetMarket(market string) (types.Market, error) {
 	params.Add("market", market)
 
 	return httpGet[types.Market](
-		fmt.Sprintf("%s/markets", httpUrl),
+		fmt.Sprintf("%s/markets", bitvavoURL),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -205,7 +205,7 @@ func (c *httpClient) GetMarket(market string) (types.Market, error) {
 
 func (c *httpClient) GetAssets() ([]types.Asset, error) {
 	return httpGet[[]types.Asset](
-		fmt.Sprintf("%s/assets", httpUrl),
+		fmt.Sprintf("%s/assets", bitvavoURL),
 		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -218,7 +218,7 @@ func (c *httpClient) GetAsset(symbol string) (types.Asset, error) {
 	params.Add("symbol", symbol)
 
 	return httpGet[types.Asset](
-		fmt.Sprintf("%s/assets", httpUrl),
+		fmt.Sprintf("%s/assets", bitvavoURL),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -233,7 +233,7 @@ func (c *httpClient) GetOrderBook(market string, depth ...uint64) (types.Book, e
 	}
 
 	return httpGet[types.Book](
-		fmt.Sprintf("%s/%s/book", httpUrl, market),
+		fmt.Sprintf("%s/%s/book", bitvavoURL, market),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -247,7 +247,7 @@ func (c *httpClient) GetTrades(market string, opt ...OptionalParams) ([]types.Tr
 		params = opt[0].Params()
 	}
 	return httpGet[[]types.Trade](
-		fmt.Sprintf("%s/%s/trades", httpUrl, market),
+		fmt.Sprintf("%s/%s/trades", bitvavoURL, market),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -263,7 +263,7 @@ func (c *httpClient) GetCandles(market string, interval string, opt ...OptionalP
 	params.Add("interval", interval)
 
 	return httpGet[[]types.Candle](
-		fmt.Sprintf("%s/%s/candles", httpUrl, market),
+		fmt.Sprintf("%s/%s/candles", bitvavoURL, market),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -273,7 +273,7 @@ func (c *httpClient) GetCandles(market string, interval string, opt ...OptionalP
 
 func (c *httpClient) GetTickerPrices() ([]types.TickerPrice, error) {
 	return httpGet[[]types.TickerPrice](
-		fmt.Sprintf("%s/ticker/price", httpUrl),
+		fmt.Sprintf("%s/ticker/price", bitvavoURL),
 		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -286,7 +286,7 @@ func (c *httpClient) GetTickerPrice(market string) (types.TickerPrice, error) {
 	params.Add("market", market)
 
 	return httpGet[types.TickerPrice](
-		fmt.Sprintf("%s/ticker/price", httpUrl),
+		fmt.Sprintf("%s/ticker/price", bitvavoURL),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -296,7 +296,7 @@ func (c *httpClient) GetTickerPrice(market string) (types.TickerPrice, error) {
 
 func (c *httpClient) GetTickerBooks() ([]types.TickerBook, error) {
 	return httpGet[[]types.TickerBook](
-		fmt.Sprintf("%s/ticker/book", httpUrl),
+		fmt.Sprintf("%s/ticker/book", bitvavoURL),
 		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -309,7 +309,7 @@ func (c *httpClient) GetTickerBook(market string) (types.TickerBook, error) {
 	params.Add("market", market)
 
 	return httpGet[types.TickerBook](
-		fmt.Sprintf("%s/ticker/book", httpUrl),
+		fmt.Sprintf("%s/ticker/book", bitvavoURL),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -319,7 +319,7 @@ func (c *httpClient) GetTickerBook(market string) (types.TickerBook, error) {
 
 func (c *httpClient) GetTickers24h() ([]types.Ticker24h, error) {
 	return httpGet[[]types.Ticker24h](
-		fmt.Sprintf("%s/ticker/24h", httpUrl),
+		fmt.Sprintf("%s/ticker/24h", bitvavoURL),
 		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
@@ -332,7 +332,7 @@ func (c *httpClient) GetTicker24h(market string) (types.Ticker24h, error) {
 	params.Add("market", market)
 
 	return httpGet[types.Ticker24h](
-		fmt.Sprintf("%s/ticker/24h", httpUrl),
+		fmt.Sprintf("%s/ticker/24h", bitvavoURL),
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
