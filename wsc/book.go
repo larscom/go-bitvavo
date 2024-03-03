@@ -1,7 +1,8 @@
 package wsc
 
 import (
-	"github.com/larscom/go-bitvavo/v2/log"
+	"log/slog"
+
 	"github.com/larscom/go-bitvavo/v2/types"
 
 	"github.com/goccy/go-json"
@@ -95,14 +96,14 @@ func (t *bookEventHandler) UnsubscribeAll() error {
 func (t *bookEventHandler) handleMessage(bytes []byte) {
 	var bookEvent *BookEvent
 	if err := json.Unmarshal(bytes, &bookEvent); err != nil {
-		log.Logger().Error("Couldn't unmarshal message into BookEvent", "message", string(bytes))
+		slog.Error("Couldn't unmarshal message into BookEvent", "message", string(bytes))
 	} else {
 		market := bookEvent.Market
 		chn, exist := t.subs.Get(market)
 		if exist {
 			chn <- *bookEvent
 		} else {
-			log.Logger().Error("There is no active subscription", "handler", "trades", "market", market)
+			slog.Error("There is no active subscription", "handler", "trades", "market", market)
 		}
 	}
 }

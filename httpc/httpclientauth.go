@@ -61,7 +61,6 @@ type httpClientAuth struct {
 	config                 *authConfig
 	updateRateLimit        func(ratelimit int64)
 	updateRateLimitResetAt func(resetAt time.Time)
-	logDebug               func(message string, args ...any)
 }
 
 type authConfig struct {
@@ -73,13 +72,11 @@ type authConfig struct {
 func newHttpClientAuth(
 	updateRateLimit func(ratelimit int64),
 	updateRateLimitResetAt func(resetAt time.Time),
-	logDebug func(message string, args ...any),
 	config *authConfig,
 ) *httpClientAuth {
 	return &httpClientAuth{
 		updateRateLimit:        updateRateLimit,
 		updateRateLimitResetAt: updateRateLimitResetAt,
-		logDebug:               logDebug,
 		config:                 config,
 	}
 }
@@ -95,7 +92,6 @@ func (c *httpClientAuth) GetBalance(symbol ...string) ([]types.Balance, error) {
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		c.config,
 	)
 }
@@ -106,7 +102,6 @@ func (c *httpClientAuth) GetAccount() (types.Account, error) {
 		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		c.config,
 	)
 }
@@ -123,7 +118,6 @@ func (c *httpClientAuth) GetOrders(market string, opt ...OptionalParams) ([]type
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		c.config,
 	)
 }
@@ -139,7 +133,6 @@ func (c *httpClientAuth) GetOrdersOpen(market ...string) ([]types.Order, error) 
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		c.config,
 	)
 }
@@ -154,7 +147,6 @@ func (c *httpClientAuth) GetOrder(market string, orderId string) (types.Order, e
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		c.config,
 	)
 }
@@ -170,7 +162,6 @@ func (c *httpClientAuth) CancelOrders(market ...string) ([]string, error) {
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		c.config,
 	)
 	if err != nil {
@@ -195,7 +186,6 @@ func (c *httpClientAuth) CancelOrder(market string, orderId string) (string, err
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		c.config,
 	)
 	if err != nil {
@@ -215,7 +205,6 @@ func (c *httpClientAuth) NewOrder(market string, side string, orderType string, 
 		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		c.config,
 	)
 }
@@ -230,7 +219,6 @@ func (c *httpClientAuth) UpdateOrder(market string, orderId string, order types.
 		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		c.config,
 	)
 }
@@ -247,7 +235,6 @@ func (c *httpClientAuth) GetTrades(market string, opt ...OptionalParams) ([]type
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		c.config,
 	)
 }

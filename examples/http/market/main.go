@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	client := bitvavo.NewHttpClient(httpc.WithDebug(true))
+	client := bitvavo.NewHttpClient(httpc.WithDebug())
 
 	book, err := client.GetOrderBook("ETH-EUR")
 	if err != nil {

@@ -2,9 +2,9 @@ package wsc
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 
-	"github.com/larscom/go-bitvavo/v2/log"
 	"github.com/larscom/go-bitvavo/v2/types"
 	"github.com/larscom/go-bitvavo/v2/util"
 
@@ -103,7 +103,7 @@ func newCandleWebSocketMessage(action Action, market string, interval string) We
 
 func (c *candlesEventHandler) Subscribe(market string, interval string, buffSize ...uint64) (<-chan CandlesEvent, error) {
 
-	key := getMapKey(market, interval)
+	key := createKey(market, interval)
 	if c.subs.Has(key) {
 		return nil, ErrSubscriptionAlreadyActive
 	}
@@ -119,7 +119,7 @@ func (c *candlesEventHandler) Subscribe(market string, interval string, buffSize
 }
 
 func (c *candlesEventHandler) Unsubscribe(market string, interval string) error {
-	key := getMapKey(market, interval)
+	key := createKey(market, interval)
 	sub, exist := c.subs.Get(key)
 
 	if exist {
@@ -134,7 +134,7 @@ func (c *candlesEventHandler) Unsubscribe(market string, interval string) error 
 
 func (c *candlesEventHandler) UnsubscribeAll() error {
 	for sub := range c.subs.IterBuffered() {
-		market, interval := getMapKeyValue(sub.Key)
+		market, interval := parseKey(sub.Key)
 		if err := c.Unsubscribe(market, interval); err != nil {
 			return err
 		}
@@ -145,37 +145,37 @@ func (c *candlesEventHandler) UnsubscribeAll() error {
 func (c *candlesEventHandler) handleMessage(bytes []byte) {
 	var candleEvent *CandlesEvent
 	if err := json.Unmarshal(bytes, &candleEvent); err != nil {
-		log.Logger().Error("Couldn't unmarshal message into CandlesEvent", "message", string(bytes))
+		slog.Error("Couldn't unmarshal message into CandlesEvent", "message", string(bytes))
 	} else {
 		var (
 			market   = candleEvent.Market
 			interval = candleEvent.Interval
-			key      = getMapKey(market, interval)
+			key      = createKey(market, interval)
 		)
 
 		chn, exist := c.subs.Get(key)
 		if exist {
 			chn <- *candleEvent
 		} else {
-			log.Logger().Error("There is no active subscription", "handler", "candles", "market", market, "interval", interval)
+			slog.Error("There is no active subscription", "handler", "candles", "market", market, "interval", interval)
 		}
 	}
 }
 
 func (c *candlesEventHandler) reconnect() {
 	for sub := range c.subs.IterBuffered() {
-		market, interval := getMapKeyValue(sub.Key)
+		market, interval := parseKey(sub.Key)
 		c.writechn <- newCandleWebSocketMessage(actionSubscribe, market, interval)
 	}
 }
 
-func getMapKeyValue(key string) (string, string) {
+func parseKey(key string) (string, string) {
 	parts := strings.Split(key, "_")
 	market := parts[0]
 	interval := parts[1]
 	return market, interval
 }
 
-func getMapKey(market string, interval string) string {
+func createKey(market string, interval string) string {
 	return fmt.Sprintf("%s_%s", market, interval)
 }

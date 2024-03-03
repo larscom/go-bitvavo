@@ -2,8 +2,8 @@ package wsc
 
 import (
 	"fmt"
+	"log/slog"
 
-	"github.com/larscom/go-bitvavo/v2/log"
 	"github.com/larscom/go-bitvavo/v2/types"
 
 	"github.com/goccy/go-json"
@@ -109,14 +109,14 @@ func (t *ticker24hEventHandler) UnsubscribeAll() error {
 func (t *ticker24hEventHandler) handleMessage(bytes []byte) {
 	var ticker24hEvent *Ticker24hEvent
 	if err := json.Unmarshal(bytes, &ticker24hEvent); err != nil {
-		log.Logger().Error("Couldn't unmarshal message into Ticker24hEvent", "message", string(bytes))
+		slog.Error("Couldn't unmarshal message into Ticker24hEvent", "message", string(bytes))
 	} else {
 		market := ticker24hEvent.Market
 		chn, exist := t.subs.Get(market)
 		if exist {
 			chn <- *ticker24hEvent
 		} else {
-			log.Logger().Error("There is no active subscription", "handler", "ticker24h", "market", market)
+			slog.Error("There is no active subscription", "handler", "ticker24h", "market", market)
 		}
 	}
 }

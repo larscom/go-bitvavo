@@ -2,10 +2,11 @@ package wsc
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
-	"github.com/larscom/go-bitvavo/v2/log"
 	"github.com/larscom/go-bitvavo/v2/types"
 
 	"github.com/goccy/go-json"
@@ -70,7 +71,6 @@ type wsClient struct {
 	autoReconnect  bool
 	conn           *websocket.Conn
 	writechn       chan WebSocketMessage
-	debug          bool
 	errchn         chan<- error
 
 	// public
@@ -85,6 +85,10 @@ type wsClient struct {
 }
 
 func NewWsClient(options ...Option) (WsClient, error) {
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})))
+
 	conn, err := newConn()
 	if err != nil {
 		return nil, err
@@ -95,7 +99,6 @@ func NewWsClient(options ...Option) (WsClient, error) {
 		autoReconnect: true,
 		writechn:      make(chan WebSocketMessage),
 	}
-
 	for _, opt := range options {
 		opt(ws)
 	}
@@ -108,11 +111,12 @@ func NewWsClient(options ...Option) (WsClient, error) {
 
 type Option func(*wsClient)
 
-// Enable debug logging.
-// default: false
-func WithDebug(debug bool) Option {
+// Enable debug logging
+func WithDebug() Option {
 	return func(ws *wsClient) {
-		ws.debug = debug
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		})))
 	}
 }
 
@@ -222,7 +226,7 @@ func newConn() (*websocket.Conn, error) {
 func (ws *wsClient) writeLoop() {
 	for msg := range ws.writechn {
 		if err := ws.conn.WriteJSON(msg); err != nil {
-			log.Logger().Error("Write failed", "error", err.Error())
+			slog.Error("Write failed", "error", err.Error())
 			if ws.hasErrorChannel() {
 				ws.errchn <- err
 			}
@@ -231,13 +235,13 @@ func (ws *wsClient) writeLoop() {
 }
 
 func (ws *wsClient) readLoop() {
-	ws.logDebug("Connected...")
+	slog.Debug("Connected...")
 
 	for {
 		_, bytes, err := ws.conn.ReadMessage()
 		if err != nil {
 			defer ws.reconnect()
-			log.Logger().Error("Read failed", "error", err.Error())
+			slog.Error("Read failed", "error", err.Error())
 			if ws.hasErrorChannel() {
 				ws.errchn <- err
 			}
@@ -250,18 +254,18 @@ func (ws *wsClient) readLoop() {
 
 func (ws *wsClient) reconnect() {
 	if !ws.autoReconnect {
-		ws.logDebug("Auto reconnect disabled, not reconnecting...")
+		slog.Debug("Auto reconnect disabled, not reconnecting...")
 		return
 	}
 
-	ws.logDebug("Reconnecting...")
+	slog.Debug("Reconnecting...")
 
 	conn, err := newConn()
 	if err != nil {
 		defer ws.reconnect()
 
 		ws.reconnectCount += 1
-		log.Logger().Error("Reconnect failed, retrying in 1 second", "count", ws.reconnectCount)
+		slog.Error("Reconnect failed, retrying in 1 second", "count", ws.reconnectCount)
 		if ws.hasErrorChannel() {
 			ws.errchn <- err
 		}
@@ -306,13 +310,13 @@ func newWebSocketMessage(action Action, channelName ChannelName, market string) 
 }
 
 func (ws *wsClient) handleMessage(bytes []byte) {
-	ws.logDebug("Handling incoming message", "message", string(bytes))
+	slog.Debug("Handling incoming message", "message", string(bytes))
 
 	var baseEvent *BaseEvent
 	if err := json.Unmarshal(bytes, &baseEvent); err != nil {
 		var wsError *types.BitvavoErr
 		if err := json.Unmarshal(bytes, &wsError); err != nil {
-			log.Logger().Error("Don't know how to handle this message", "message", string(bytes))
+			slog.Error("Don't know how to handle this message", "message", string(bytes))
 		} else {
 			ws.handlError(wsError)
 		}
@@ -322,13 +326,13 @@ func (ws *wsClient) handleMessage(bytes []byte) {
 }
 
 func (ws *wsClient) handlError(err *types.BitvavoErr) {
-	ws.logDebug("Handling incoming error", "err", err)
+	slog.Debug("Handling incoming error", "err", err)
 
 	switch err.Action {
 	case actionAuthenticate.Value:
-		log.Logger().Error("Failed to authenticate, wrong apiKey and/or apiSecret")
+		slog.Error("Failed to authenticate, wrong apiKey and/or apiSecret")
 	default:
-		log.Logger().Error("Could not handle error", "action", err.Action, "code", err.Code, "message", err.Message)
+		slog.Error("Could not handle error", "action", err.Action, "code", err.Code, "message", err.Message)
 	}
 
 	if ws.hasErrorChannel() {
@@ -337,7 +341,7 @@ func (ws *wsClient) handlError(err *types.BitvavoErr) {
 }
 
 func (ws *wsClient) handleEvent(e *BaseEvent, bytes []byte) {
-	ws.logDebug("Handling incoming message", "event", e.Event, "message", string(bytes))
+	slog.Debug("Handling incoming message", "event", e.Event, "message", string(bytes))
 
 	switch e.Event {
 	// public
@@ -365,7 +369,7 @@ func (ws *wsClient) handleEvent(e *BaseEvent, bytes []byte) {
 		ws.handleFillEvent(bytes)
 
 	default:
-		log.Logger().Error("Could not handle event, invalid parameters provided?")
+		slog.Error("Could not handle event, invalid parameters provided?")
 		if ws.hasErrorChannel() {
 			ws.errchn <- ErrEventHandler
 		}
@@ -373,15 +377,15 @@ func (ws *wsClient) handleEvent(e *BaseEvent, bytes []byte) {
 }
 
 func (ws *wsClient) handleSubscribedEvent(bytes []byte) {
-	ws.logDebug("Received subscribed event")
+	slog.Debug("Received subscribed event")
 }
 
 func (ws *wsClient) handleUnsubscribedEvent(bytes []byte) {
-	ws.logDebug("Received unsubscribed event")
+	slog.Debug("Received unsubscribed event")
 }
 
 func (ws *wsClient) handleCandleEvent(bytes []byte) {
-	ws.logDebug("Received candles event")
+	slog.Debug("Received candles event")
 
 	if ws.hasCandleHandler() {
 		ws.candlesEventHandler.handleMessage(bytes)
@@ -389,7 +393,7 @@ func (ws *wsClient) handleCandleEvent(bytes []byte) {
 }
 
 func (ws *wsClient) handleTickerEvent(bytes []byte) {
-	ws.logDebug("Received ticker event")
+	slog.Debug("Received ticker event")
 
 	if ws.hasTickerHandler() {
 		ws.tickerEventHandler.handleMessage(bytes)
@@ -397,7 +401,7 @@ func (ws *wsClient) handleTickerEvent(bytes []byte) {
 }
 
 func (ws *wsClient) handleTicker24hEvent(bytes []byte) {
-	ws.logDebug("Received ticker24h event")
+	slog.Debug("Received ticker24h event")
 
 	if ws.hasTicker24hHandler() {
 		ws.ticker24hEventHandler.handleMessage(bytes)
@@ -405,7 +409,7 @@ func (ws *wsClient) handleTicker24hEvent(bytes []byte) {
 }
 
 func (ws *wsClient) handleTradesEvent(bytes []byte) {
-	ws.logDebug("Received trades event")
+	slog.Debug("Received trades event")
 
 	if ws.hasTradesHandler() {
 		ws.tradesEventHandler.handleMessage(bytes)
@@ -413,7 +417,7 @@ func (ws *wsClient) handleTradesEvent(bytes []byte) {
 }
 
 func (ws *wsClient) handleBookEvent(bytes []byte) {
-	ws.logDebug("Received book event")
+	slog.Debug("Received book event")
 
 	if ws.hasBookHandler() {
 		ws.bookEventHandler.handleMessage(bytes)
@@ -421,7 +425,7 @@ func (ws *wsClient) handleBookEvent(bytes []byte) {
 }
 
 func (ws *wsClient) handleOrderEvent(bytes []byte) {
-	ws.logDebug("Received order event")
+	slog.Debug("Received order event")
 
 	if ws.hasAccountHandler() {
 		ws.accountEventHandler.handleOrderMessage(bytes)
@@ -429,7 +433,7 @@ func (ws *wsClient) handleOrderEvent(bytes []byte) {
 }
 
 func (ws *wsClient) handleFillEvent(bytes []byte) {
-	ws.logDebug("Received fill event")
+	slog.Debug("Received fill event")
 
 	if ws.hasAccountHandler() {
 		ws.accountEventHandler.handleFillMessage(bytes)
@@ -437,7 +441,7 @@ func (ws *wsClient) handleFillEvent(bytes []byte) {
 }
 
 func (ws *wsClient) handleAuthEvent(bytes []byte) {
-	ws.logDebug("Received auth event")
+	slog.Debug("Received auth event")
 
 	if ws.hasAccountHandler() {
 		ws.accountEventHandler.handleAuthMessage(bytes)
@@ -470,10 +474,4 @@ func (ws *wsClient) hasBookHandler() bool {
 
 func (ws *wsClient) hasAccountHandler() bool {
 	return ws.accountEventHandler != nil
-}
-
-func (ws *wsClient) logDebug(message string, args ...any) {
-	if ws.debug {
-		log.Logger().Debug(message, args...)
-	}
 }

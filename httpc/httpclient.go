@@ -2,11 +2,12 @@ package httpc
 
 import (
 	"fmt"
+	"log/slog"
 	"net/url"
+	"os"
 	"sync"
 	"time"
 
-	"github.com/larscom/go-bitvavo/v2/log"
 	"github.com/larscom/go-bitvavo/v2/types"
 	"github.com/larscom/go-bitvavo/v2/util"
 )
@@ -102,8 +103,6 @@ type HttpClient interface {
 type Option func(*httpClient)
 
 type httpClient struct {
-	debug bool
-
 	mu               sync.RWMutex
 	ratelimit        int64
 	ratelimitResetAt time.Time
@@ -112,10 +111,13 @@ type httpClient struct {
 }
 
 func NewHttpClient(options ...Option) HttpClient {
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})))
+
 	client := &httpClient{
 		ratelimit: -1,
 	}
-
 	for _, opt := range options {
 		opt(client)
 	}
@@ -124,10 +126,11 @@ func NewHttpClient(options ...Option) HttpClient {
 }
 
 // Enable debug logging.
-// default: false
-func WithDebug(debug bool) Option {
+func WithDebug() Option {
 	return func(c *httpClient) {
-		c.debug = debug
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		})))
 	}
 }
 
@@ -150,7 +153,7 @@ func (c *httpClient) ToAuthClient(apiKey string, apiSecret string, windowTimeMs 
 		apiSecret:    apiSecret,
 	}
 
-	c.authClient = newHttpClientAuth(c.updateRateLimit, c.updateRateLimitResetAt, c.logDebug, config)
+	c.authClient = newHttpClientAuth(c.updateRateLimit, c.updateRateLimitResetAt, config)
 	return c.authClient
 }
 
@@ -168,7 +171,6 @@ func (c *httpClient) GetTime() (int64, error) {
 		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		nil,
 	)
 	if err != nil {
@@ -184,7 +186,6 @@ func (c *httpClient) GetMarkets() ([]types.Market, error) {
 		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		nil,
 	)
 }
@@ -198,7 +199,6 @@ func (c *httpClient) GetMarket(market string) (types.Market, error) {
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		nil,
 	)
 }
@@ -209,7 +209,6 @@ func (c *httpClient) GetAssets() ([]types.Asset, error) {
 		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		nil,
 	)
 }
@@ -223,7 +222,6 @@ func (c *httpClient) GetAsset(symbol string) (types.Asset, error) {
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		nil,
 	)
 }
@@ -239,7 +237,6 @@ func (c *httpClient) GetOrderBook(market string, depth ...uint64) (types.Book, e
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		nil,
 	)
 }
@@ -254,7 +251,6 @@ func (c *httpClient) GetTrades(market string, opt ...OptionalParams) ([]types.Tr
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		nil,
 	)
 }
@@ -271,7 +267,6 @@ func (c *httpClient) GetCandles(market string, interval string, opt ...OptionalP
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		nil,
 	)
 }
@@ -282,7 +277,6 @@ func (c *httpClient) GetTickerPrices() ([]types.TickerPrice, error) {
 		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		nil,
 	)
 }
@@ -296,7 +290,6 @@ func (c *httpClient) GetTickerPrice(market string) (types.TickerPrice, error) {
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		nil,
 	)
 }
@@ -307,7 +300,6 @@ func (c *httpClient) GetTickerBooks() ([]types.TickerBook, error) {
 		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		nil,
 	)
 }
@@ -321,7 +313,6 @@ func (c *httpClient) GetTickerBook(market string) (types.TickerBook, error) {
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		nil,
 	)
 }
@@ -332,7 +323,6 @@ func (c *httpClient) GetTickers24h() ([]types.Ticker24h, error) {
 		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		nil,
 	)
 }
@@ -346,7 +336,6 @@ func (c *httpClient) GetTicker24h(market string) (types.Ticker24h, error) {
 		params,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
-		c.logDebug,
 		nil,
 	)
 }
@@ -365,10 +354,4 @@ func (c *httpClient) updateRateLimitResetAt(resetAt time.Time) {
 
 func (c *httpClient) hasAuthClient() bool {
 	return c.authClient != nil
-}
-
-func (c *httpClient) logDebug(message string, args ...any) {
-	if c.debug {
-		log.Logger().Debug(message, args...)
-	}
 }

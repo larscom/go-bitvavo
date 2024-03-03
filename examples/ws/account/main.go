@@ -17,7 +17,7 @@ func main() {
 	key := os.Getenv("API_KEY")
 	secret := os.Getenv("API_SECRET")
 
-	ws, err := bitvavo.NewWsClient(wsc.WithDebug(false))
+	ws, err := bitvavo.NewWsClient(wsc.WithDebug())
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -30,11 +31,10 @@ func httpDelete[T any](
 	params url.Values,
 	updateRateLimit func(ratelimit int64),
 	updateRateLimitResetAt func(resetAt time.Time),
-	logDebug func(message string, args ...any),
 	config *authConfig,
 ) (T, error) {
 	req, _ := http.NewRequest("DELETE", createRequestUrl(url, params), nil)
-	return httpDo[T](req, emptyBody, updateRateLimit, updateRateLimitResetAt, logDebug, config)
+	return httpDo[T](req, emptyBody, updateRateLimit, updateRateLimitResetAt, config)
 }
 
 func httpGet[T any](
@@ -42,11 +42,10 @@ func httpGet[T any](
 	params url.Values,
 	updateRateLimit func(ratelimit int64),
 	updateRateLimitResetAt func(resetAt time.Time),
-	logDebug func(message string, args ...any),
 	config *authConfig,
 ) (T, error) {
 	req, _ := http.NewRequest("GET", createRequestUrl(url, params), nil)
-	return httpDo[T](req, emptyBody, updateRateLimit, updateRateLimitResetAt, logDebug, config)
+	return httpDo[T](req, emptyBody, updateRateLimit, updateRateLimitResetAt, config)
 }
 
 func httpPost[T any](
@@ -55,7 +54,6 @@ func httpPost[T any](
 	params url.Values,
 	updateRateLimit func(ratelimit int64),
 	updateRateLimitResetAt func(resetAt time.Time),
-	logDebug func(message string, args ...any),
 	config *authConfig,
 ) (T, error) {
 	payload, err := json.Marshal(body)
@@ -63,10 +61,10 @@ func httpPost[T any](
 		var empty T
 		return empty, err
 	}
-	logDebug("created request body", "body", string(payload))
+	slog.Debug("created request body", "body", string(payload))
 
 	req, _ := http.NewRequest("POST", createRequestUrl(url, params), bytes.NewBuffer(payload))
-	return httpDo[T](req, payload, updateRateLimit, updateRateLimitResetAt, logDebug, config)
+	return httpDo[T](req, payload, updateRateLimit, updateRateLimitResetAt, config)
 }
 
 func httpPut[T any](
@@ -75,7 +73,6 @@ func httpPut[T any](
 	params url.Values,
 	updateRateLimit func(ratelimit int64),
 	updateRateLimitResetAt func(resetAt time.Time),
-	logDebug func(message string, args ...any),
 	config *authConfig,
 ) (T, error) {
 	payload, err := json.Marshal(body)
@@ -83,10 +80,10 @@ func httpPut[T any](
 		var empty T
 		return empty, err
 	}
-	logDebug("created request body", "body", string(payload))
+	slog.Debug("created request body", "body", string(payload))
 
 	req, _ := http.NewRequest("PUT", createRequestUrl(url, params), bytes.NewBuffer(payload))
-	return httpDo[T](req, payload, updateRateLimit, updateRateLimitResetAt, logDebug, config)
+	return httpDo[T](req, payload, updateRateLimit, updateRateLimitResetAt, config)
 }
 
 func httpDo[T any](
@@ -94,10 +91,9 @@ func httpDo[T any](
 	body []byte,
 	updateRateLimit func(ratelimit int64),
 	updateRateLimitResetAt func(resetAt time.Time),
-	logDebug func(message string, args ...any),
 	config *authConfig,
 ) (T, error) {
-	logDebug("executing request", "method", request.Method, "url", request.URL.String())
+	slog.Debug("executing request", "method", request.Method, "url", request.URL.String())
 
 	var empty T
 	if err := applyHeaders(request, body, config); err != nil {
@@ -118,16 +114,16 @@ func httpDo[T any](
 		return empty, unwrapErr(response)
 	}
 
-	return unwrapBody[T](response, logDebug)
+	return unwrapBody[T](response)
 }
 
-func unwrapBody[T any](response *http.Response, logDebug func(message string, args ...any)) (T, error) {
+func unwrapBody[T any](response *http.Response) (T, error) {
 	var data T
 	bytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		return data, err
 	}
-	logDebug("received response", "body", string(bytes))
+	slog.Debug("received response", "body", string(bytes))
 
 	if err := json.Unmarshal(bytes, &data); err != nil {
 		return data, err

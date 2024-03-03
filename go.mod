@@ -1,6 +1,6 @@
 module github.com/larscom/go-bitvavo/v2
 
-go 1.21.4
+go 1.22.0
 
 require (
 	github.com/goccy/go-json v0.10.2
@@ -10,7 +10,7 @@ require (
 )
 
 require (
-	github.com/dolthub/maphash v0.0.0-20221220182448-74e1e1ea1577 // indirect
-	github.com/stretchr/testify v1.8.4 // indirect
-	golang.org/x/net v0.18.0 // indirect
+	github.com/dolthub/maphash v0.1.0 // indirect
+	github.com/stretchr/testify v1.9.0 // indirect
+	golang.org/x/net v0.21.0 // indirect
 )

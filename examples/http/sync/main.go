@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	client := bitvavo.NewHttpClient(httpc.WithDebug(false))
+	client := bitvavo.NewHttpClient(httpc.WithDebug())
 
 	time, err := client.GetTime()
 	if err != nil {
