@@ -47,8 +47,7 @@ type Candle struct {
 
 func (c *Candle) UnmarshalJSON(bytes []byte) error {
 	var j []any
-	err := json.Unmarshal(bytes, &j)
-	if err != nil {
+	if err := json.Unmarshal(bytes, &j); err != nil {
 		return err
 	}
 

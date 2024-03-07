@@ -31,12 +31,6 @@ import "github.com/larscom/go-bitvavo/v2"
 
 ## 🌐 HTTP client
 
-## 🔧 Options
-
-### Debugging
-
-You can enable debug logging by providing an option to the HttpClient constructor
-
 ```go
 client := bitvavo.NewHttpClient(http.WithDebug())
 ```
@@ -81,37 +75,6 @@ By default, the websocket handler will try to reconnect to the websocket when th
 For each subscription you can set the buffer size for the underlying channel. All channels have a default buffer size of `50` which should be
 sufficient in most cases. You may need to increase this number if you have a **large** amount of subscriptions.
 
-## 🔧 Options
-
-### Debugging
-
-You can enable debug logging by providing an option to the Websocket constructor
-
-```go
-ws, err := bitvavo.NewWsClient(ws.WithDebug())
-```
-
-### Auto Reconnect
-
-You can disable auto reconnecting to the websocket by providing an option to the Websocket constructor
-
-```go
-ws, err := bitvavo.NewWsClient(ws.WithAutoReconnect(false))
-```
-
-### Error Channel
-
-You can provide your own error channel if you wish to receive errors (e.g. reconnect error, auth error, write failed, read failed)
-
-```go
-errchn := make(chan error)
-ws, _ := bitvavo.NewWsClient(ws.WithErrorChannel(errchn))
-
-for err := range errchn {
-	log.Println(err)
-}
-```
-
 ### Public Subscriptions
 
 Public subscriptions requires no authentication and can be used directly.
@@ -127,7 +90,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	chn, err := ws.Candles().Subscribe("ETH-EUR", "5m")
+	chn, err := ws.Candles().Subscribe([]string{"ETH-EUR"}, "5m")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -172,7 +135,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	bookchn, err := ws.Book().Subscribe("ETH-EUR")
+	bookchn, err := ws.Book().Subscribe([]string{"ETH-EUR"})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -214,7 +177,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	tickerchn, err := ws.Ticker().Subscribe("ETH-EUR")
+	tickerchn, err := ws.Ticker().Subscribe([]string{"ETH-EUR"})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -256,7 +219,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ticker24hchn, err := ws.Ticker24h().Subscribe("ETH-EUR")
+	ticker24hchn, err := ws.Ticker24h().Subscribe([]string{"ETH-EUR"})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -298,7 +261,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	tradeschn, err := ws.Trades().Subscribe("ETH-EUR")
+	tradeschn, err := ws.Trades().Subscribe([]string{"ETH-EUR"})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -333,9 +296,9 @@ type TradesEvent struct {
 
 Private subscriptions do require authentication in the form of an `API key` and `API secret` which you can setup in Bitvavo.
 
-#### Account :: Orders
+#### Account :: Orders / Fills
 
-Subscribe to order events for market: `ETH-EUR` with buffer size `100`
+Subscribe to order and fill events for market: `ETH-EUR`
 
 ```go
 func main() {
@@ -347,20 +310,26 @@ func main() {
 	key := "MY API KEY"
 	secret := "MY API SECRET"
 
-	account, err := ws.Account(key, secret).Subscribe("ETH-EUR")
+	orderchn, fillchn, err := ws.Account(key, secret).Subscribe([]string{"ETH-EUR"})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for orderEvent := range account.Order(100) {
-		log.Println(orderEvent)
+	for {
+		select {
+		case orderEvent := <-orderchn:
+			log.Println(orderEvent)
+
+		case fillEvent := <-fillchn:
+			log.Println(fillEvent)
+		}
 	}
 }
 
 ```
 
 <details>
- <summary>View Event</summary>
+ <summary>View Event(s)</summary>
 
 ```go
 type OrderEvent struct {
@@ -373,41 +342,7 @@ type OrderEvent struct {
 	// The order itself.
 	Order Order `json:"order"`
 }
-...
-```
 
-</details>
-
-#### Account :: Fill
-
-Subscribe to fill events for market: `ETH-EUR` with buffer size `100`
-
-```go
-func main() {
-	ws, err := bitvavo.NewWsClient()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	key := "MY API KEY"
-	secret := "MY API SECRET"
-
-	account, err := ws.Account(key, secret).Subscribe("ETH-EUR")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for fillEvent := range account.Fill(100) {
-		log.Println(fillEvent)
-	}
-}
-
-```
-
-<details>
- <summary>View Event</summary>
-
-```go
 type FillEvent struct {
 	// Describes the returned event over the socket
 	Event string `json:"event"`
@@ -420,3 +355,34 @@ type FillEvent struct {
 ```
 
 </details>
+
+## 🔧 Options
+
+### Auto Reconnect
+
+You can disable auto reconnecting to the websocket by providing an option to the Websocket constructor
+
+```go
+ws, err := bitvavo.NewWsClient(ws.WithAutoReconnect(false))
+```
+
+### Error Channel
+
+You can provide your own error channel if you wish to receive errors (e.g. reconnect error, auth error, write failed, read failed)
+
+```go
+errchn := make(chan error)
+ws, _ := bitvavo.NewWsClient(ws.WithErrorChannel(errchn))
+
+for err := range errchn {
+	log.Println(err)
+}
+```
+
+## 📝 Debug Logging
+
+You can enable debug logging for the HTTP client and WS client.
+
+```go
+bitvavo.EnableDebugLogging()
+```

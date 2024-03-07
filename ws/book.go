@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"github.com/google/uuid"
 	"github.com/larscom/go-bitvavo/v2/types"
 	"github.com/rs/zerolog/log"
 
@@ -26,8 +27,7 @@ func (b *BookEvent) UnmarshalJSON(bytes []byte) error {
 	}
 
 	var bookEvent map[string]any
-	err := json.Unmarshal(bytes, &bookEvent)
-	if err != nil {
+	if err := json.Unmarshal(bytes, &bookEvent); err != nil {
 		return err
 	}
 
@@ -44,72 +44,75 @@ func (b *BookEvent) UnmarshalJSON(bytes []byte) error {
 
 type bookEventHandler struct {
 	writechn chan<- WebSocketMessage
-	subs     *safemap.SafeMap[string, chan<- BookEvent]
+	subs     *safemap.SafeMap[string, *subscription[BookEvent]]
 }
 
 func newBookEventHandler(writechn chan<- WebSocketMessage) *bookEventHandler {
 	return &bookEventHandler{
 		writechn: writechn,
-		subs:     safemap.New[string, chan<- BookEvent](),
+		subs:     safemap.New[string, *subscription[BookEvent]](),
 	}
 }
 
-func (t *bookEventHandler) Subscribe(market string, buffSize ...uint64) (<-chan BookEvent, error) {
-	if t.subs.Has(market) {
-		return nil, errSubscriptionAlreadyActive
+func (b *bookEventHandler) Subscribe(markets []string, buffSize ...uint64) (<-chan BookEvent, error) {
+	markets = getUniqueMarkets(markets)
+
+	if err := requireNoSubscription(b.subs, markets); err != nil {
+		return nil, err
 	}
 
-	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameBook, market)
+	var (
+		size   = util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
+		outchn = make(chan BookEvent, size)
+		id     = uuid.New()
+	)
 
-	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
+	for _, market := range markets {
+		inchn := make(chan BookEvent, size)
+		b.subs.Set(market, newSubscription(id, market, inchn, outchn))
+		go relayMessages(inchn, outchn)
+	}
 
-	chn := make(chan BookEvent, size)
-	t.subs.Set(market, chn)
+	b.writechn <- newWebSocketMessage(actionSubscribe, channelNameBook, markets)
 
-	return chn, nil
+	return outchn, nil
 }
 
-func (t *bookEventHandler) Unsubscribe(market string) error {
-	sub, exist := t.subs.Get(market)
+func (b *bookEventHandler) Unsubscribe(markets []string) error {
+	markets = getUniqueMarkets(markets)
 
-	if exist {
-		t.writechn <- newWebSocketMessage(actionUnsubscribe, channelNameBook, market)
-		close(sub)
-		t.subs.Remove(market)
-		return nil
+	if err := requireSubscription(b.subs, markets); err != nil {
+		return err
 	}
 
-	return errNoSubscriptionActive
+	b.writechn <- newWebSocketMessage(actionUnsubscribe, channelNameBook, markets)
+
+	return deleteSubscriptions(b.subs, closeInChannels(b.subs, markets), countSubscriptions(b.subs))
 }
 
-func (t *bookEventHandler) UnsubscribeAll() error {
-	for sub := range t.subs.IterBuffered() {
-		market := sub.Key
-		if err := t.Unsubscribe(market); err != nil {
-			return err
-		}
+func (b *bookEventHandler) UnsubscribeAll() error {
+	if err := b.Unsubscribe(b.subs.Keys()); err != nil {
+		return err
 	}
+
 	return nil
 }
 
-func (t *bookEventHandler) handleMessage(bytes []byte) {
+func (b *bookEventHandler) handleMessage(bytes []byte) {
 	var bookEvent *BookEvent
 	if err := json.Unmarshal(bytes, &bookEvent); err != nil {
 		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into BookEvent")
 	} else {
 		market := bookEvent.Market
-		chn, exist := t.subs.Get(market)
+		sub, exist := b.subs.Get(market)
 		if exist {
-			chn <- *bookEvent
+			sub.inchn <- *bookEvent
 		} else {
 			log.Error().Str("market", market).Msg("There is no active subscription to handle this BookEvent")
 		}
 	}
 }
 
-func (t *bookEventHandler) reconnect() {
-	for sub := range t.subs.IterBuffered() {
-		market := sub.Key
-		t.writechn <- newWebSocketMessage(actionSubscribe, channelNameBook, market)
-	}
+func (b *bookEventHandler) reconnect() {
+	b.writechn <- newWebSocketMessage(actionSubscribe, channelNameBook, b.subs.Keys())
 }

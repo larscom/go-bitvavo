@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"github.com/google/uuid"
 	"github.com/larscom/go-bitvavo/v2/types"
 	"github.com/rs/zerolog/log"
 
@@ -26,8 +27,7 @@ func (t *TradesEvent) UnmarshalJSON(bytes []byte) error {
 	}
 
 	var tradesEvent map[string]any
-	err := json.Unmarshal(bytes, &tradesEvent)
-	if err != nil {
+	if err := json.Unmarshal(bytes, &tradesEvent); err != nil {
 		return err
 	}
 
@@ -44,51 +44,57 @@ func (t *TradesEvent) UnmarshalJSON(bytes []byte) error {
 
 type tradesEventHandler struct {
 	writechn chan<- WebSocketMessage
-	subs     *safemap.SafeMap[string, chan<- TradesEvent]
+	subs     *safemap.SafeMap[string, *subscription[TradesEvent]]
 }
 
 func newTradesEventHandler(writechn chan<- WebSocketMessage) *tradesEventHandler {
 	return &tradesEventHandler{
 		writechn: writechn,
-		subs:     safemap.New[string, chan<- TradesEvent](),
+		subs:     safemap.New[string, *subscription[TradesEvent]](),
 	}
 }
 
-func (t *tradesEventHandler) Subscribe(market string, buffSize ...uint64) (<-chan TradesEvent, error) {
-	if t.subs.Has(market) {
-		return nil, errSubscriptionAlreadyActive
+func (t *tradesEventHandler) Subscribe(markets []string, buffSize ...uint64) (<-chan TradesEvent, error) {
+	markets = getUniqueMarkets(markets)
+
+	if err := requireNoSubscription(t.subs, markets); err != nil {
+		return nil, err
 	}
 
-	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTrades, market)
+	var (
+		size   = util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
+		outchn = make(chan TradesEvent, size)
+		id     = uuid.New()
+	)
 
-	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
+	for _, market := range markets {
+		inchn := make(chan TradesEvent, size)
+		t.subs.Set(market, newSubscription(id, market, inchn, outchn))
+		go relayMessages(inchn, outchn)
+	}
 
-	chn := make(chan TradesEvent, size)
-	t.subs.Set(market, chn)
+	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTrades, markets)
 
-	return chn, nil
+	return outchn, nil
 }
 
-func (t *tradesEventHandler) Unsubscribe(market string) error {
-	sub, exist := t.subs.Get(market)
+func (t *tradesEventHandler) Unsubscribe(markets []string) error {
+	markets = getUniqueMarkets(markets)
 
-	if exist {
-		t.writechn <- newWebSocketMessage(actionUnsubscribe, channelNameTrades, market)
-		close(sub)
-		t.subs.Remove(market)
-		return nil
+	if err := requireSubscription(t.subs, markets); err != nil {
+		return err
 	}
 
-	return errNoSubscriptionActive
+	t.writechn <- newWebSocketMessage(actionUnsubscribe, channelNameTrades, markets)
+
+	return deleteSubscriptions(t.subs, closeInChannels(t.subs, markets), countSubscriptions(t.subs))
 }
 
 func (t *tradesEventHandler) UnsubscribeAll() error {
-	for sub := range t.subs.IterBuffered() {
-		market := sub.Key
-		if err := t.Unsubscribe(market); err != nil {
-			return err
-		}
+	if err := t.Unsubscribe(t.subs.Keys()); err != nil {
+		return err
 	}
+
 	return nil
 }
 
@@ -98,9 +104,9 @@ func (t *tradesEventHandler) handleMessage(bytes []byte) {
 		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into TradesEvent")
 	} else {
 		market := tradeEvent.Market
-		chn, exist := t.subs.Get(market)
+		sub, exist := t.subs.Get(market)
 		if exist {
-			chn <- *tradeEvent
+			sub.inchn <- *tradeEvent
 		} else {
 			log.Error().Str("market", market).Msg("There is no active subscription to handle this TradesEvent")
 		}
@@ -108,8 +114,5 @@ func (t *tradesEventHandler) handleMessage(bytes []byte) {
 }
 
 func (t *tradesEventHandler) reconnect() {
-	for sub := range t.subs.IterBuffered() {
-		market := sub.Key
-		t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTrades, market)
-	}
+	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTrades, t.subs.Keys())
 }

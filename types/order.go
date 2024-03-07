@@ -284,8 +284,8 @@ type Order struct {
 
 func (o *Order) UnmarshalJSON(bytes []byte) error {
 	var j map[string]any
-	err := json.Unmarshal(bytes, &j)
-	if err != nil {
+
+	if err := json.Unmarshal(bytes, &j); err != nil {
 		return err
 	}
 

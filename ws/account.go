@@ -4,11 +4,12 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/google/uuid"
 	"github.com/larscom/go-bitvavo/v2/crypto"
+	"github.com/larscom/go-bitvavo/v2/util"
 	"github.com/rs/zerolog/log"
 
 	"github.com/larscom/go-bitvavo/v2/types"
-	"github.com/larscom/go-bitvavo/v2/util"
 	"github.com/smallnest/safemap"
 )
 
@@ -29,8 +30,7 @@ func (o *OrderEvent) UnmarshalJSON(bytes []byte) error {
 	}
 
 	var orderEvent map[string]any
-	err := json.Unmarshal(bytes, &orderEvent)
-	if err != nil {
+	if err := json.Unmarshal(bytes, &orderEvent); err != nil {
 		return err
 	}
 
@@ -60,9 +60,9 @@ func (f *FillEvent) UnmarshalJSON(bytes []byte) error {
 	}
 
 	var fillEvent map[string]any
-	err := json.Unmarshal(bytes, &fillEvent)
-	if err != nil {
+	if err := json.Unmarshal(bytes, &fillEvent); err != nil {
 		return err
+
 	}
 
 	var (
@@ -76,56 +76,47 @@ func (f *FillEvent) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-type AccountSubscription interface {
-	// Order channel to receive order events.
-	// You can set the buffSize for this channel.
-	//
-	// If you have many subscriptions at once you may need to increase the buffSize
-	//
-	// Default buffSize: 50
-	Order(buffSize ...uint64) <-chan OrderEvent
-
-	// Order channel to receive fill events.
-	// You can set the buffSize for this channel.
-	//
-	// If you have many subscriptions at once you may need to increase the buffSize
-	//
-	// Default buffSize: 50
-	Fill(buffSize ...uint64) <-chan FillEvent
-}
-
-type accountSub struct {
-	orderchn chan<- OrderEvent
-	fillchn  chan<- FillEvent
-}
-
-func (a *accountSub) Order(buffSize ...uint64) <-chan OrderEvent {
-	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
-
-	orderchn := make(chan OrderEvent, size)
-	a.orderchn = orderchn
-
-	return orderchn
-}
-
-func (a *accountSub) Fill(buffSize ...uint64) <-chan FillEvent {
-	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
-
-	fillchn := make(chan FillEvent, size)
-	a.fillchn = fillchn
-
-	return fillchn
-}
-
 type AccountEventHandler interface {
-	// Subscribe to market
-	Subscribe(market string) (AccountSubscription, error)
+	// Subscribe to markets.
+	// You can set the buffSize for the channel.
+	// If you have many subscriptions at once you may need to increase the buffSize
+	// Default buffSize: 50
+	Subscribe(markets []string, buffSize ...uint64) (<-chan OrderEvent, <-chan FillEvent, error)
 
-	// Unsubscribe from market
-	Unsubscribe(market string) error
+	// Unsubscribe from markets.
+	Unsubscribe(markets []string) error
 
-	// Unsubscribe from every market
+	// Unsubscribe from every market.
 	UnsubscribeAll() error
+}
+
+type accountSubscription struct {
+	id     uuid.UUID
+	market string
+
+	orderinchn  chan<- OrderEvent
+	orderoutchn chan OrderEvent
+
+	fillinchn  chan<- FillEvent
+	filloutchn chan FillEvent
+}
+
+func newAccountSubscription(
+	id uuid.UUID,
+	market string,
+	orderinchn chan<- OrderEvent,
+	orderoutchn chan OrderEvent,
+	fillinchn chan<- FillEvent,
+	filloutchn chan FillEvent,
+) *accountSubscription {
+	return &accountSubscription{
+		id:          id,
+		market:      market,
+		orderinchn:  orderinchn,
+		orderoutchn: orderoutchn,
+		fillinchn:   fillinchn,
+		filloutchn:  filloutchn,
+	}
 }
 
 type accountEventHandler struct {
@@ -134,7 +125,7 @@ type accountEventHandler struct {
 	authenticated bool
 	authchn       chan bool
 	writechn      chan<- WebSocketMessage
-	subs          *safemap.SafeMap[string, *accountSub]
+	subs          *safemap.SafeMap[string, *accountSubscription]
 }
 
 func newAccountEventHandler(apiKey string, apiSecret string, writechn chan<- WebSocketMessage) *accountEventHandler {
@@ -143,88 +134,105 @@ func newAccountEventHandler(apiKey string, apiSecret string, writechn chan<- Web
 		apiSecret: apiSecret,
 		writechn:  writechn,
 		authchn:   make(chan bool),
-		subs:      safemap.New[string, *accountSub](),
+		subs:      safemap.New[string, *accountSubscription](),
 	}
 }
 
-func (t *accountEventHandler) Subscribe(market string) (AccountSubscription, error) {
-	if t.subs.Has(market) {
-		return nil, errSubscriptionAlreadyActive
+func (a *accountEventHandler) Subscribe(markets []string, buffSize ...uint64) (<-chan OrderEvent, <-chan FillEvent, error) {
+	markets = getUniqueMarkets(markets)
+
+	if err := requireNoSubscription(a.subs, markets); err != nil {
+		return nil, nil, err
 	}
 
-	if err := t.withAuth(func() {
-		t.writechn <- newWebSocketMessage(actionSubscribe, channelNameAccount, market)
+	if err := a.withAuth(func() {
+		a.writechn <- newWebSocketMessage(actionSubscribe, channelNameAccount, markets)
 	}); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	subscription := new(accountSub)
+	var (
+		size        = util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
+		orderoutchn = make(chan OrderEvent, size)
+		filloutchn  = make(chan FillEvent, size)
+		id          = uuid.New()
+	)
 
-	t.subs.Set(market, subscription)
+	for _, market := range markets {
+		orderinchn := make(chan OrderEvent, size)
+		fillinchn := make(chan FillEvent, size)
 
-	return subscription, nil
+		a.subs.Set(market, newAccountSubscription(id, market, orderinchn, orderoutchn, fillinchn, filloutchn))
+
+		go relayMessages(orderinchn, orderoutchn)
+		go relayMessages(fillinchn, filloutchn)
+	}
+
+	return orderoutchn, filloutchn, nil
 
 }
 
-func (t *accountEventHandler) Unsubscribe(market string) error {
-	sub, exist := t.subs.Get(market)
+func (a *accountEventHandler) Unsubscribe(markets []string) error {
+	markets = getUniqueMarkets(markets)
 
-	if exist {
-		if err := t.withAuth(func() {
-			t.writechn <- newWebSocketMessage(actionUnsubscribe, channelNameBook, market)
-		}); err != nil {
-			return err
-		}
-		if sub.fillchn != nil {
-			close(sub.fillchn)
-		}
-		if sub.orderchn != nil {
-			close(sub.orderchn)
-		}
-		t.subs.Remove(market)
-		return nil
+	if err := requireSubscription(a.subs, markets); err != nil {
+		return err
 	}
 
-	return errNoSubscriptionActive
+	if err := a.withAuth(func() {
+		a.writechn <- newWebSocketMessage(actionUnsubscribe, channelNameAccount, markets)
+	}); err != nil {
+		return err
+	}
+
+	return a.deleteSubscriptions(a.subs, a.closeInChannels(a.subs, markets), a.countSubscriptions(a.subs))
 }
 
-func (t *accountEventHandler) UnsubscribeAll() error {
-	for sub := range t.subs.IterBuffered() {
-		market := sub.Key
-		if err := t.Unsubscribe(market); err != nil {
-			return err
-		}
+func (a *accountEventHandler) UnsubscribeAll() error {
+	if err := a.Unsubscribe(a.subs.Keys()); err != nil {
+		return err
 	}
+
 	return nil
 }
 
-func (t *accountEventHandler) handleOrderMessage(bytes []byte) {
+func (a *accountEventHandler) handleOrderMessage(bytes []byte) {
 	var orderEvent *OrderEvent
 	if err := json.Unmarshal(bytes, &orderEvent); err != nil {
 		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into OrderEvent")
-	} else if t.hasOrderChn(orderEvent.Market) {
-		sub, _ := t.subs.Get(orderEvent.Market)
-		sub.orderchn <- *orderEvent
+	} else {
+		market := orderEvent.Market
+		sub, exist := a.subs.Get(market)
+		if exist {
+			sub.orderinchn <- *orderEvent
+		} else {
+			log.Error().Str("market", market).Msg("There is no active subscription to handle this OrderEvent")
+		}
 	}
 }
 
-func (t *accountEventHandler) handleFillMessage(bytes []byte) {
+func (a *accountEventHandler) handleFillMessage(bytes []byte) {
 	var fillEvent *FillEvent
 	if err := json.Unmarshal(bytes, &fillEvent); err != nil {
 		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into FillEvent")
-	} else if t.hasFillChn(fillEvent.Market) {
-		sub, _ := t.subs.Get(fillEvent.Market)
-		sub.fillchn <- *fillEvent
+	} else {
+		market := fillEvent.Market
+		sub, exist := a.subs.Get(market)
+		if exist {
+			sub.fillinchn <- *fillEvent
+		} else {
+			log.Error().Str("market", market).Msg("There is no active subscription to handle this FillEvent")
+		}
 	}
 }
 
-func (t *accountEventHandler) handleAuthMessage(bytes []byte) {
+func (a *accountEventHandler) handleAuthMessage(bytes []byte) {
 	var authEvent *AuthEvent
 	if err := json.Unmarshal(bytes, &authEvent); err != nil {
 		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into AuthEvent")
-		t.authchn <- false
+		a.authchn <- false
 	} else {
-		t.authchn <- authEvent.Authenticated
+		a.authchn <- authEvent.Authenticated
 	}
 }
 
@@ -238,30 +246,27 @@ func newWebSocketAuthMessage(apiKey string, apiSecret string) WebSocketMessage {
 	}
 }
 
-func (t *accountEventHandler) authenticate() {
-	t.writechn <- newWebSocketAuthMessage(t.apiKey, t.apiSecret)
-	t.authenticated = <-t.authchn
+func (a *accountEventHandler) authenticate() {
+	a.writechn <- newWebSocketAuthMessage(a.apiKey, a.apiSecret)
+	a.authenticated = <-a.authchn
 }
 
-func (t *accountEventHandler) reconnect() {
-	t.authenticated = false
+func (a *accountEventHandler) reconnect() {
+	a.authenticated = false
 
-	for sub := range t.subs.IterBuffered() {
-		market := sub.Key
-		if err := t.withAuth(func() {
-			t.writechn <- newWebSocketMessage(actionSubscribe, channelNameAccount, market)
-		}); err != nil {
-			log.Err(err).Str("market", market).Msg("Failed to reconnect the account websocket")
-		}
+	if err := a.withAuth(func() {
+		a.writechn <- newWebSocketMessage(actionSubscribe, channelNameAccount, a.subs.Keys())
+	}); err != nil {
+		log.Err(err).Msg("Failed to reconnect the account websocket")
 	}
 }
 
-func (t *accountEventHandler) withAuth(action func()) error {
-	if !t.authenticated {
-		t.authenticate()
+func (a *accountEventHandler) withAuth(action func()) error {
+	if !a.authenticated {
+		a.authenticate()
 	}
 
-	if t.authenticated {
+	if a.authenticated {
 		action()
 		return nil
 	}
@@ -269,22 +274,42 @@ func (t *accountEventHandler) withAuth(action func()) error {
 	return errAuthenticationFailed
 }
 
-func (t *accountEventHandler) hasOrderChn(market string) bool {
-	sub, exist := t.subs.Get(market)
-
-	if exist {
-		return sub.orderchn != nil
+func (a *accountEventHandler) closeInChannels(subs *safemap.SafeMap[string, *accountSubscription], markets []string) map[uuid.UUID][]string {
+	idsWithMarkets := make(map[uuid.UUID][]string)
+	for _, key := range markets {
+		if sub, found := subs.Get(key); found {
+			idsWithMarkets[sub.id] = append(idsWithMarkets[sub.id], key)
+			close(sub.orderinchn)
+			close(sub.fillinchn)
+		}
 	}
-
-	return false
+	return idsWithMarkets
 }
 
-func (t *accountEventHandler) hasFillChn(market string) bool {
-	sub, exist := t.subs.Get(market)
-
-	if exist {
-		return sub.fillchn != nil
+func (a *accountEventHandler) deleteSubscriptions(
+	subs *safemap.SafeMap[string, *accountSubscription],
+	idsWithMarkets map[uuid.UUID][]string,
+	idsWithCount map[uuid.UUID]int,
+) error {
+	for id, key := range idsWithMarkets {
+		if idsWithCount[id] == len(key) {
+			if item, found := subs.Get(key[0]); found {
+				close(item.orderoutchn)
+				close(item.filloutchn)
+			}
+		}
+		for _, key := range key {
+			subs.Remove(key)
+		}
 	}
 
-	return false
+	return nil
+}
+
+func (a *accountEventHandler) countSubscriptions(subs *safemap.SafeMap[string, *accountSubscription]) map[uuid.UUID]int {
+	idsWithCount := make(map[uuid.UUID]int)
+	for item := range subs.IterBuffered() {
+		idsWithCount[item.Val.id]++
+	}
+	return idsWithCount
 }

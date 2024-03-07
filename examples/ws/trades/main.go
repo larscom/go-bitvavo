@@ -12,7 +12,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	tradeschn, err := ws.Trades().Subscribe("ETH-EUR")
+	tradeschn, err := ws.Trades().Subscribe([]string{"ETH-EUR"})
 	if err != nil {
 		log.Fatal(err)
 	}

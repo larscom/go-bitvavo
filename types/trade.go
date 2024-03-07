@@ -70,8 +70,7 @@ type Trade struct {
 func (t *Trade) UnmarshalJSON(bytes []byte) error {
 	var j map[string]any
 
-	err := json.Unmarshal(bytes, &j)
-	if err != nil {
+	if err := json.Unmarshal(bytes, &j); err != nil {
 		return err
 	}
 

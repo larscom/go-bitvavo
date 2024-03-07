@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/larscom/go-bitvavo/v2/types"
 	"github.com/larscom/go-bitvavo/v2/util"
 	"github.com/rs/zerolog/log"
@@ -28,8 +29,7 @@ type CandlesEvent struct {
 
 func (c *CandlesEvent) UnmarshalJSON(bytes []byte) error {
 	var candleEvent map[string]any
-	err := json.Unmarshal(bytes, &candleEvent)
-	if err != nil {
+	if err := json.Unmarshal(bytes, &candleEvent); err != nil {
 		return err
 	}
 
@@ -61,84 +61,96 @@ func (c *CandlesEvent) UnmarshalJSON(bytes []byte) error {
 }
 
 type CandlesEventHandler interface {
-	// Subscribe to market with interval.
+	// Subscribe to markets with interval.
 	// You can set the buffSize for this channel.
 	//
 	// If you have many subscriptions at once you may need to increase the buffSize
 	//
 	// Default buffSize: 50
-	Subscribe(market string, interval string, buffSize ...uint64) (<-chan CandlesEvent, error)
+	Subscribe(markets []string, interval string, buffSize ...uint64) (<-chan CandlesEvent, error)
 
-	// Unsubscribe from market with interval
-	Unsubscribe(market string, interval string) error
+	// Unsubscribe from markets with interval
+	Unsubscribe(markets []string, interval string) error
 
-	// Unsubscribe from every market
+	// Unsubscribe from every market with interval
 	UnsubscribeAll() error
 }
 
 type candlesEventHandler struct {
 	writechn chan<- WebSocketMessage
-	subs     *safemap.SafeMap[string, chan<- CandlesEvent]
+	subs     *safemap.SafeMap[string, *subscription[CandlesEvent]]
 }
 
 func newCandlesEventHandler(writechn chan<- WebSocketMessage) *candlesEventHandler {
 	return &candlesEventHandler{
 		writechn: writechn,
-		subs:     safemap.New[string, chan<- CandlesEvent](),
+		subs:     safemap.New[string, *subscription[CandlesEvent]](),
 	}
 }
 
-func newCandleWebSocketMessage(action Action, market string, interval string) WebSocketMessage {
+func newCandleWebSocketMessage(action Action, markets []string, interval string) WebSocketMessage {
 	return WebSocketMessage{
 		Action: action.Value,
 		Channels: []Channel{
 			{
 				Name:      channelNameCandles.Value,
-				Markets:   []string{market},
+				Markets:   markets,
 				Intervals: []string{interval},
 			},
 		},
 	}
 }
 
-func (c *candlesEventHandler) Subscribe(market string, interval string, buffSize ...uint64) (<-chan CandlesEvent, error) {
+func (c *candlesEventHandler) Subscribe(markets []string, interval string, buffSize ...uint64) (<-chan CandlesEvent, error) {
+	markets = getUniqueMarkets(markets)
+	keys := c.createKeys(markets, interval)
 
-	key := createKey(market, interval)
-	if c.subs.Has(key) {
-		return nil, errSubscriptionAlreadyActive
+	for i, key := range keys {
+		if c.subs.Has(key) {
+			return nil, errSubscriptionAlreadyActive(markets[i])
+		}
 	}
 
-	c.writechn <- newCandleWebSocketMessage(actionSubscribe, market, interval)
+	var (
+		size   = util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
+		outchn = make(chan CandlesEvent, size)
+		id     = uuid.New()
+	)
 
-	size := util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
+	for i, key := range keys {
+		inchn := make(chan CandlesEvent, size)
+		c.subs.Set(key, newSubscription(id, markets[i], inchn, outchn))
+		go relayMessages(inchn, outchn)
+	}
 
-	chn := make(chan CandlesEvent, size)
-	c.subs.Set(key, chn)
+	c.writechn <- newCandleWebSocketMessage(actionSubscribe, markets, interval)
 
-	return chn, nil
+	return outchn, nil
 }
 
-func (c *candlesEventHandler) Unsubscribe(market string, interval string) error {
-	key := createKey(market, interval)
-	sub, exist := c.subs.Get(key)
+func (c *candlesEventHandler) Unsubscribe(markets []string, interval string) error {
+	markets = getUniqueMarkets(markets)
 
-	if exist {
-		c.writechn <- newCandleWebSocketMessage(actionUnsubscribe, market, interval)
-		close(sub)
-		c.subs.Remove(key)
-		return nil
+	keys := c.createKeys(markets, interval)
+
+	for i, key := range keys {
+		if !c.subs.Has(key) {
+			return errNoSubscriptionActive(markets[i])
+		}
 	}
 
-	return errNoSubscriptionActive
+	c.writechn <- newCandleWebSocketMessage(actionUnsubscribe, markets, interval)
+
+	return deleteSubscriptions(c.subs, closeInChannels(c.subs, keys), countSubscriptions(c.subs))
 }
 
 func (c *candlesEventHandler) UnsubscribeAll() error {
-	for sub := range c.subs.IterBuffered() {
-		market, interval := parseKey(sub.Key)
-		if err := c.Unsubscribe(market, interval); err != nil {
+	for interval, markets := range c.getIntervalMarkets() {
+		if err := c.Unsubscribe(markets, interval); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -150,12 +162,12 @@ func (c *candlesEventHandler) handleMessage(bytes []byte) {
 		var (
 			market   = candleEvent.Market
 			interval = candleEvent.Interval
-			key      = createKey(market, interval)
+			key      = c.createKey(market, interval)
 		)
 
-		chn, exist := c.subs.Get(key)
+		sub, exist := c.subs.Get(key)
 		if exist {
-			chn <- *candleEvent
+			sub.inchn <- *candleEvent
 		} else {
 			log.Error().Str("market", market).Msg("There is no active subscription to handle this CandlesEvent")
 		}
@@ -163,19 +175,37 @@ func (c *candlesEventHandler) handleMessage(bytes []byte) {
 }
 
 func (c *candlesEventHandler) reconnect() {
-	for sub := range c.subs.IterBuffered() {
-		market, interval := parseKey(sub.Key)
-		c.writechn <- newCandleWebSocketMessage(actionSubscribe, market, interval)
+	for interval, markets := range c.getIntervalMarkets() {
+		c.writechn <- newCandleWebSocketMessage(actionSubscribe, markets, interval)
 	}
 }
 
-func parseKey(key string) (string, string) {
+func (c *candlesEventHandler) getIntervalMarkets() map[string][]string {
+	m := make(map[string][]string)
+
+	for sub := range c.subs.IterBuffered() {
+		market, interval := c.parseKey(sub.Key)
+		m[interval] = append(m[interval], market)
+	}
+
+	return m
+}
+
+func (c *candlesEventHandler) parseKey(key string) (string, string) {
 	parts := strings.Split(key, "_")
 	market := parts[0]
 	interval := parts[1]
 	return market, interval
 }
 
-func createKey(market string, interval string) string {
+func (c *candlesEventHandler) createKey(market string, interval string) string {
 	return fmt.Sprintf("%s_%s", market, interval)
+}
+
+func (c *candlesEventHandler) createKeys(markets []string, interval string) []string {
+	keys := make([]string, len(markets))
+	for i := 0; i < len(keys); i++ {
+		keys[i] = c.createKey(markets[i], interval)
+	}
+	return keys
 }

@@ -6,7 +6,6 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/larscom/go-bitvavo/v2"
-	"github.com/larscom/go-bitvavo/v2/ws"
 )
 
 func main() {
@@ -17,17 +16,23 @@ func main() {
 	key := os.Getenv("API_KEY")
 	secret := os.Getenv("API_SECRET")
 
-	ws, err := bitvavo.NewWsClient(ws.WithDebug())
+	ws, err := bitvavo.NewWsClient()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	account, err := ws.Account(key, secret).Subscribe("ETH-EUR")
+	orderchn, fillchn, err := ws.Account(key, secret).Subscribe([]string{"ETH-EUR", "BTC-EUR"})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for orderEvent := range account.Order(50) {
-		log.Println(orderEvent)
+	for {
+		select {
+		case orderEvent := <-orderchn:
+			log.Println(orderEvent)
+
+		case fillEvent := <-fillchn:
+			log.Println(fillEvent)
+		}
 	}
 }

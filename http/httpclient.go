@@ -8,7 +8,6 @@ import (
 
 	"github.com/larscom/go-bitvavo/v2/types"
 	"github.com/larscom/go-bitvavo/v2/util"
-	"github.com/rs/zerolog"
 )
 
 const (
@@ -99,8 +98,6 @@ type HttpClient interface {
 	GetTicker24h(market string) (types.Ticker24h, error)
 }
 
-type Option func(*httpClient)
-
 type httpClient struct {
 	mu               sync.RWMutex
 	ratelimit        int64
@@ -109,25 +106,12 @@ type httpClient struct {
 	authClient *httpClientAuth
 }
 
-func NewHttpClient(options ...Option) HttpClient {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	zerolog.SetGlobalLevel(zerolog.WarnLevel)
-
+func NewHttpClient() HttpClient {
 	client := &httpClient{
 		ratelimit: -1,
 	}
-	for _, opt := range options {
-		opt(client)
-	}
 
 	return client
-}
-
-// Enable debug logging.
-func WithDebug() Option {
-	return func(c *httpClient) {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	}
 }
 
 func (c *httpClient) ToAuthClient(apiKey string, apiSecret string, windowTimeMs ...uint64) HttpClientAuth {

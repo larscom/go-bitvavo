@@ -20,8 +20,7 @@ type Balance struct {
 func (b *Balance) UnmarshalJSON(bytes []byte) error {
 	var j map[string]string
 
-	err := json.Unmarshal(bytes, &j)
-	if err != nil {
+	if err := json.Unmarshal(bytes, &j); err != nil {
 		return err
 	}
 

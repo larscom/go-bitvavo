@@ -5,12 +5,11 @@ import (
 	"time"
 
 	"github.com/larscom/go-bitvavo/v2"
-	"github.com/larscom/go-bitvavo/v2/http"
 	"github.com/larscom/go-bitvavo/v2/types"
 )
 
 func main() {
-	client := bitvavo.NewHttpClient(http.WithDebug())
+	client := bitvavo.NewHttpClient()
 
 	book, err := client.GetOrderBook("ETH-EUR")
 	if err != nil {

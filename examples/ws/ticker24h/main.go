@@ -12,7 +12,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ticker24hchn, err := ws.Ticker24h().Subscribe("ETH-EUR")
+	ticker24hchn, err := ws.Ticker24h().Subscribe([]string{"ETH-EUR"})
 	if err != nil {
 		log.Fatal(err)
 	}

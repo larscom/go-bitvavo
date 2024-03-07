@@ -25,8 +25,7 @@ type Ticker struct {
 func (t *Ticker) UnmarshalJSON(bytes []byte) error {
 	var j map[string]string
 
-	err := json.Unmarshal(bytes, &j)
-	if err != nil {
+	if err := json.Unmarshal(bytes, &j); err != nil {
 		return err
 	}
 

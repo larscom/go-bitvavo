@@ -2,11 +2,11 @@ package ws
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/larscom/go-bitvavo/v2/types"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/goccy/go-json"
@@ -21,23 +21,23 @@ const (
 )
 
 var (
-	errNoSubscriptionActive      = errors.New("no subscription active")
-	errSubscriptionAlreadyActive = errors.New("subscription already active")
+	errNoSubscriptionActive      = func(market string) error { return fmt.Errorf("no active subscription for market: %s", market) }
+	errSubscriptionAlreadyActive = func(market string) error { return fmt.Errorf("subscription already active for market: %s", market) }
 	errAuthenticationFailed      = errors.New("could not subscribe, authentication failed")
 	errEventHandler              = errors.New("could not handle event")
 )
 
 type EventHandler[T any] interface {
-	// Subscribe to market.
+	// Subscribe to markets.
 	// You can set the buffSize for the channel.
 	//
 	// If you have many subscriptions at once you may need to increase the buffSize
 	//
 	// Default buffSize: 50
-	Subscribe(market string, buffSize ...uint64) (<-chan T, error)
+	Subscribe(markets []string, buffSize ...uint64) (<-chan T, error)
 
-	// Unsubscribe from market.
-	Unsubscribe(market string) error
+	// Unsubscribe from markets.
+	Unsubscribe(markets []string) error
 
 	// Unsubscribe from every market.
 	UnsubscribeAll() error
@@ -85,9 +85,6 @@ type wsClient struct {
 }
 
 func NewWsClient(options ...Option) (WsClient, error) {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	zerolog.SetGlobalLevel(zerolog.WarnLevel)
-
 	conn, err := newConn()
 	if err != nil {
 		return nil, err
@@ -109,14 +106,6 @@ func NewWsClient(options ...Option) (WsClient, error) {
 }
 
 type Option func(*wsClient)
-
-// Enable debug logging
-func WithDebug() Option {
-	return func(ws *wsClient) {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-
-	}
-}
 
 // Receive websocket connection errors (e.g. reconnect error, auth error, write failed, read failed)
 func WithErrorChannel(errchn chan<- error) Option {
@@ -298,13 +287,13 @@ func (ws *wsClient) reconnect() {
 	}
 }
 
-func newWebSocketMessage(action Action, channelName ChannelName, market string) WebSocketMessage {
+func newWebSocketMessage(action Action, channelName ChannelName, markets []string) WebSocketMessage {
 	return WebSocketMessage{
 		Action: action.Value,
 		Channels: []Channel{
 			{
 				Name:    channelName.Value,
-				Markets: []string{market},
+				Markets: markets,
 			},
 		},
 	}
@@ -342,7 +331,7 @@ func (ws *wsClient) handlError(err *types.BitvavoErr) {
 }
 
 func (ws *wsClient) handleEvent(e *BaseEvent, bytes []byte) {
-	log.Debug().Str("event", e.Event).Str("message", string(bytes)).Msg("Handling incoming message")
+	log.Debug().Str("event", e.Event).Msg("Handling incoming message")
 
 	switch e.Event {
 	// public
@@ -378,15 +367,15 @@ func (ws *wsClient) handleEvent(e *BaseEvent, bytes []byte) {
 }
 
 func (ws *wsClient) handleSubscribedEvent(bytes []byte) {
-	log.Debug().Msg("Received subscribed event")
+	log.Debug().Str("message", string(bytes)).Msg("Received subscribed event")
 }
 
 func (ws *wsClient) handleUnsubscribedEvent(bytes []byte) {
-	log.Debug().Msg("Received unsubscribed event")
+	log.Debug().Str("message", string(bytes)).Msg("Received unsubscribed event")
 }
 
 func (ws *wsClient) handleCandleEvent(bytes []byte) {
-	log.Debug().Msg("Received candles event")
+	log.Debug().Str("message", string(bytes)).Msg("Received candles event")
 
 	if ws.hasCandleHandler() {
 		ws.candlesEventHandler.handleMessage(bytes)
@@ -394,7 +383,7 @@ func (ws *wsClient) handleCandleEvent(bytes []byte) {
 }
 
 func (ws *wsClient) handleTickerEvent(bytes []byte) {
-	log.Debug().Msg("Received ticker event")
+	log.Debug().Str("message", string(bytes)).Msg("Received ticker event")
 
 	if ws.hasTickerHandler() {
 		ws.tickerEventHandler.handleMessage(bytes)
@@ -402,7 +391,7 @@ func (ws *wsClient) handleTickerEvent(bytes []byte) {
 }
 
 func (ws *wsClient) handleTicker24hEvent(bytes []byte) {
-	log.Debug().Msg("Received ticker24h event")
+	log.Debug().Str("message", string(bytes)).Msg("Received ticker24h event")
 
 	if ws.hasTicker24hHandler() {
 		ws.ticker24hEventHandler.handleMessage(bytes)
@@ -410,7 +399,7 @@ func (ws *wsClient) handleTicker24hEvent(bytes []byte) {
 }
 
 func (ws *wsClient) handleTradesEvent(bytes []byte) {
-	log.Debug().Msg("Received trades event")
+	log.Debug().Str("message", string(bytes)).Msg("Received trades event")
 
 	if ws.hasTradesHandler() {
 		ws.tradesEventHandler.handleMessage(bytes)
@@ -418,7 +407,7 @@ func (ws *wsClient) handleTradesEvent(bytes []byte) {
 }
 
 func (ws *wsClient) handleBookEvent(bytes []byte) {
-	log.Debug().Msg("Received book event")
+	log.Debug().Str("message", string(bytes)).Msg("Received book event")
 
 	if ws.hasBookHandler() {
 		ws.bookEventHandler.handleMessage(bytes)
@@ -426,7 +415,7 @@ func (ws *wsClient) handleBookEvent(bytes []byte) {
 }
 
 func (ws *wsClient) handleOrderEvent(bytes []byte) {
-	log.Debug().Msg("Received order event")
+	log.Debug().Str("message", string(bytes)).Msg("Received order event")
 
 	if ws.hasAccountHandler() {
 		ws.accountEventHandler.handleOrderMessage(bytes)
@@ -434,7 +423,7 @@ func (ws *wsClient) handleOrderEvent(bytes []byte) {
 }
 
 func (ws *wsClient) handleFillEvent(bytes []byte) {
-	log.Debug().Msg("Received fill event")
+	log.Debug().Str("message", string(bytes)).Msg("Received fill event")
 
 	if ws.hasAccountHandler() {
 		ws.accountEventHandler.handleFillMessage(bytes)
@@ -442,7 +431,7 @@ func (ws *wsClient) handleFillEvent(bytes []byte) {
 }
 
 func (ws *wsClient) handleAuthEvent(bytes []byte) {
-	log.Debug().Msg("Received auth event")
+	log.Debug().Str("message", string(bytes)).Msg("Received auth event")
 
 	if ws.hasAccountHandler() {
 		ws.accountEventHandler.handleAuthMessage(bytes)

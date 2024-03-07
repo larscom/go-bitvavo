@@ -3,7 +3,17 @@ package bitvavo
 import (
 	"github.com/larscom/go-bitvavo/v2/http"
 	"github.com/larscom/go-bitvavo/v2/ws"
+	"github.com/rs/zerolog"
 )
+
+func init() {
+	zerolog.SetGlobalLevel(zerolog.WarnLevel)
+}
+
+// Enable debug logging for the WsClient and HttpClient
+func EnableDebugLogging() {
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+}
 
 // NewWsClient creates a new Bitvavo Websocket client
 func NewWsClient(options ...ws.Option) (ws.WsClient, error) {
@@ -13,6 +23,6 @@ func NewWsClient(options ...ws.Option) (ws.WsClient, error) {
 // NewHttpClient creates a new Bitvavo HTTP client to make unauthenticated requests.
 //
 // For authenticated requests, call ToAuthClient func on this HttpClient
-func NewHttpClient(options ...http.Option) http.HttpClient {
-	return http.NewHttpClient(options...)
+func NewHttpClient() http.HttpClient {
+	return http.NewHttpClient()
 }

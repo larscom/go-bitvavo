@@ -1,41 +1,5 @@
 package ws
 
-import "github.com/orsinium-labs/enum"
-
-type WsEvent enum.Member[string]
-
-var (
-	wsEventSubscribed   = WsEvent{"subscribed"}
-	wsEventUnsubscribed = WsEvent{"unsubscribed"}
-	wsEventCandles      = WsEvent{"candle"}
-	wsEventTicker       = WsEvent{"ticker"}
-	wsEventTicker24h    = WsEvent{"ticker24h"}
-	wsEventTrades       = WsEvent{"trade"}
-	wsEventBook         = WsEvent{"book"}
-	wsEventAuth         = WsEvent{"authenticate"}
-	wsEventOrder        = WsEvent{"order"}
-	wsEventFill         = WsEvent{"fill"}
-)
-
-type Action enum.Member[string]
-
-var (
-	actionSubscribe    = Action{"subscribe"}
-	actionUnsubscribe  = Action{"unsubscribe"}
-	actionAuthenticate = Action{"authenticate"}
-)
-
-type ChannelName enum.Member[string]
-
-var (
-	channelNameCandles   = ChannelName{"candles"}
-	channelNameTicker    = ChannelName{"ticker"}
-	channelNameTicker24h = ChannelName{"ticker24h"}
-	channelNameTrades    = ChannelName{"trades"}
-	channelNameBook      = ChannelName{"book"}
-	channelNameAccount   = ChannelName{"account"}
-)
-
 type AuthEvent struct {
 	// Describes the returned event over the socket.
 	Event string `json:"event"`

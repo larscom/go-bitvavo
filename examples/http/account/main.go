@@ -6,7 +6,6 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/larscom/go-bitvavo/v2"
-	"github.com/larscom/go-bitvavo/v2/http"
 	"github.com/larscom/go-bitvavo/v2/types"
 )
 
@@ -17,7 +16,7 @@ func main() {
 	var (
 		key        = os.Getenv("API_KEY")
 		secret     = os.Getenv("API_SECRET")
-		client     = bitvavo.NewHttpClient(http.WithDebug())
+		client     = bitvavo.NewHttpClient()
 		authClient = client.ToAuthClient(key, secret)
 	)
 
