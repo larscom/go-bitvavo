@@ -32,7 +32,7 @@ import "github.com/larscom/go-bitvavo/v2"
 ## 🌐 HTTP client
 
 ```go
-client := bitvavo.NewHttpClient(http.WithDebug())
+client := bitvavo.NewHttpClient()
 ```
 
 ### Public endpoints
