@@ -48,13 +48,31 @@ type HttpClientAuth interface {
 
 	// NewOrder places a new order on the exchange.
 	//
-	// It returns the new order if it was succesfully created
+	// It returns the new order if it was successfully created
 	NewOrder(market string, side string, orderType string, order types.OrderNew) (types.Order, error)
 
 	// UpdateOrder updates an existing order on the exchange.
 	//
-	// It returns the updated order if it was succesfully updated
+	// It returns the updated order if it was successfully updated
 	UpdateOrder(market string, orderId string, order types.OrderUpdate) (types.Order, error)
+
+	// GetDepositAsset returns deposit address (with paymentid for some assets)
+	// or bank account information to increase your balance for a specific symbol (e.g: ETH)
+	GetDepositAsset(symbol string) (types.DepositAsset, error)
+
+	// GetDepositHistory returns the deposit history of the account.
+	//
+	// Optionally provide extra params (see: DepositHistoryParams)
+	GetDepositHistory(params ...OptionalParams) ([]types.DepositHistory, error)
+
+	// GetWithdrawalHistory returns the withdrawal history of the account.
+	//
+	// Optionally provide extra params (see: WithdrawalHistoryParams)
+	GetWithdrawalHistory(params ...OptionalParams) ([]types.WithdrawalHistory, error)
+
+	// NewWithdrawal requests a withdrawal to an external cryptocurrency address or verified bank account.
+	// Please note that 2FA and address confirmation by e-mail are disabled for API withdrawals.
+	Withdraw(symbol string, amount float64, address string, withdrawal types.Withdrawal) (types.WithDrawalResponse, error)
 }
 
 type httpClientAuth struct {
@@ -233,6 +251,61 @@ func (c *httpClientAuth) GetTrades(market string, opt ...OptionalParams) ([]type
 	return httpGet[[]types.TradeHistoric](
 		fmt.Sprintf("%s/trades", bitvavoURL),
 		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.config,
+	)
+}
+
+func (c *httpClientAuth) GetDepositAsset(symbol string) (types.DepositAsset, error) {
+	params := make(url.Values)
+	params.Add("symbol", symbol)
+	return httpGet[types.DepositAsset](
+		fmt.Sprintf("%s/deposit", bitvavoURL),
+		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.config,
+	)
+}
+
+func (c *httpClientAuth) GetDepositHistory(opt ...OptionalParams) ([]types.DepositHistory, error) {
+	params := make(url.Values)
+	if len(opt) > 0 {
+		params = opt[0].Params()
+	}
+	return httpGet[[]types.DepositHistory](
+		fmt.Sprintf("%s/depositHistory", bitvavoURL),
+		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.config,
+	)
+}
+
+func (c *httpClientAuth) GetWithdrawalHistory(opt ...OptionalParams) ([]types.WithdrawalHistory, error) {
+	params := make(url.Values)
+	if len(opt) > 0 {
+		params = opt[0].Params()
+	}
+	return httpGet[[]types.WithdrawalHistory](
+		fmt.Sprintf("%s/withdrawalHistory", bitvavoURL),
+		params,
+		c.updateRateLimit,
+		c.updateRateLimitResetAt,
+		c.config,
+	)
+}
+
+func (c *httpClientAuth) Withdraw(symbol string, amount float64, address string, withdrawal types.Withdrawal) (types.WithDrawalResponse, error) {
+	withdrawal.Symbol = symbol
+	withdrawal.Amount = amount
+	withdrawal.Address = address
+
+	return httpPost[types.WithDrawalResponse](
+		fmt.Sprintf("%s/withdrawal", bitvavoURL),
+		withdrawal,
+		emptyParams,
 		c.updateRateLimit,
 		c.updateRateLimitResetAt,
 		c.config,

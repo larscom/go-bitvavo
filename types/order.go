@@ -275,11 +275,11 @@ type Order struct {
 	// How much of this order is filled in quote currency
 	FilledAmountQuote float64 `json:"filledAmountQuote"`
 
-	// The currency in which the fee is payed (e.g: EUR)
+	// The currency in which the fee is paid (e.g: EUR)
 	FeeCurrency string `json:"feeCurrency"`
 
-	// How much fee is payed
-	FeePaid float64 `json:feePaid""`
+	// How much fee is paid
+	FeePaid float64 `json:"feePaid"`
 }
 
 func (o *Order) UnmarshalJSON(bytes []byte) error {
