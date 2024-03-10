@@ -98,13 +98,13 @@ func deleteSubscriptions[T any](
 		}
 	}
 
-	for id, key := range idsWithKeys {
-		if counts[id] == len(key) {
-			if item, found := subs.Get(key[0]); found {
+	for id, keys := range idsWithKeys {
+		if counts[id] == len(keys) {
+			if item, found := subs.Get(keys[0]); found {
 				close(item.outchn)
 			}
 		}
-		for _, key := range key {
+		for _, key := range keys {
 			subs.Remove(key)
 		}
 	}
