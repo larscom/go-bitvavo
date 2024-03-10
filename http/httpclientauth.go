@@ -70,7 +70,7 @@ type HttpClientAuth interface {
 	// Optionally provide extra params (see: WithdrawalHistoryParams)
 	GetWithdrawalHistory(params ...OptionalParams) ([]types.WithdrawalHistory, error)
 
-	// NewWithdrawal requests a withdrawal to an external cryptocurrency address or verified bank account.
+	// Withdraw requests a withdrawal to an external cryptocurrency address or verified bank account.
 	// Please note that 2FA and address confirmation by e-mail are disabled for API withdrawals.
 	Withdraw(symbol string, amount float64, address string, withdrawal types.Withdrawal) (types.WithDrawalResponse, error)
 }
