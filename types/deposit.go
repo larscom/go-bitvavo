@@ -85,12 +85,12 @@ type DepositHistory struct {
 
 	// The identifier for this deposit. If you did not set a ID when you made this deposit, this parameter is not included in the response.
 	//
-	// NOTICE: digital curreny only
+	// NOTICE: digital currency only
 	PaymentId string `json:"paymentId"`
 
 	// The ID for this transaction on the blockchain.
 	//
-	// NOTICE: digital curreny only
+	// NOTICE: digital currency only
 	TxId string `json:"txId"`
 
 	// The transaction fee you paid to deposit amount of symbol on Bitvavo.
@@ -100,7 +100,7 @@ type DepositHistory struct {
 	// completed - amount of symbol has been added to your balance on Bitvavo.
 	// canceled - this deposit could not be completed.
 	//
-	// NOTICE: fiat curreny only
+	// NOTICE: fiat currency only
 	Status string `json:"status"`
 }
 
