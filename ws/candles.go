@@ -141,7 +141,7 @@ func (c *candlesEventHandler) Unsubscribe(markets []string, interval string) err
 
 	c.writechn <- newCandleWebSocketMessage(actionUnsubscribe, markets, interval)
 
-	return deleteSubscriptions(c.subs, closeInChannels(c.subs, keys), countSubscriptions(c.subs))
+	return deleteSubscriptions(c.subs, keys)
 }
 
 func (c *candlesEventHandler) UnsubscribeAll() error {
@@ -169,7 +169,7 @@ func (c *candlesEventHandler) handleMessage(bytes []byte) {
 		if exist {
 			sub.inchn <- *candleEvent
 		} else {
-			log.Error().Str("market", market).Msg("There is no active subscription to handle this CandlesEvent")
+			log.Debug().Str("market", market).Msg("There is no active subscription to handle this CandlesEvent")
 		}
 	}
 }

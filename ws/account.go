@@ -185,7 +185,7 @@ func (a *accountEventHandler) Unsubscribe(markets []string) error {
 		return err
 	}
 
-	return a.deleteSubscriptions(a.subs, a.closeInChannels(a.subs, markets), a.countSubscriptions(a.subs))
+	return a.deleteSubscriptions(a.subs, markets)
 }
 
 func (a *accountEventHandler) UnsubscribeAll() error {
@@ -206,7 +206,7 @@ func (a *accountEventHandler) handleOrderMessage(bytes []byte) {
 		if exist {
 			sub.orderinchn <- *orderEvent
 		} else {
-			log.Error().Str("market", market).Msg("There is no active subscription to handle this OrderEvent")
+			log.Debug().Str("market", market).Msg("There is no active subscription to handle this OrderEvent")
 		}
 	}
 }
@@ -221,7 +221,7 @@ func (a *accountEventHandler) handleFillMessage(bytes []byte) {
 		if exist {
 			sub.fillinchn <- *fillEvent
 		} else {
-			log.Error().Str("market", market).Msg("There is no active subscription to handle this FillEvent")
+			log.Debug().Str("market", market).Msg("There is no active subscription to handle this FillEvent")
 		}
 	}
 }
@@ -274,25 +274,26 @@ func (a *accountEventHandler) withAuth(action func()) error {
 	return errAuthenticationFailed
 }
 
-func (a *accountEventHandler) closeInChannels(subs *safemap.SafeMap[string, *accountSubscription], markets []string) map[uuid.UUID][]string {
-	idsWithMarkets := make(map[uuid.UUID][]string)
+func (a *accountEventHandler) deleteSubscriptions(
+	subs *safemap.SafeMap[string, *accountSubscription],
+	markets []string,
+) error {
+	counts := make(map[uuid.UUID]int)
+	for item := range subs.IterBuffered() {
+		counts[item.Val.id]++
+	}
+
+	idsWithKeys := make(map[uuid.UUID][]string)
 	for _, key := range markets {
 		if sub, found := subs.Get(key); found {
-			idsWithMarkets[sub.id] = append(idsWithMarkets[sub.id], key)
+			idsWithKeys[sub.id] = append(idsWithKeys[sub.id], key)
 			close(sub.orderinchn)
 			close(sub.fillinchn)
 		}
 	}
-	return idsWithMarkets
-}
 
-func (a *accountEventHandler) deleteSubscriptions(
-	subs *safemap.SafeMap[string, *accountSubscription],
-	idsWithMarkets map[uuid.UUID][]string,
-	idsWithCount map[uuid.UUID]int,
-) error {
-	for id, key := range idsWithMarkets {
-		if idsWithCount[id] == len(key) {
+	for id, key := range idsWithKeys {
+		if counts[id] == len(key) {
 			if item, found := subs.Get(key[0]); found {
 				close(item.orderoutchn)
 				close(item.filloutchn)
@@ -304,12 +305,4 @@ func (a *accountEventHandler) deleteSubscriptions(
 	}
 
 	return nil
-}
-
-func (a *accountEventHandler) countSubscriptions(subs *safemap.SafeMap[string, *accountSubscription]) map[uuid.UUID]int {
-	idsWithCount := make(map[uuid.UUID]int)
-	for item := range subs.IterBuffered() {
-		idsWithCount[item.Val.id]++
-	}
-	return idsWithCount
 }

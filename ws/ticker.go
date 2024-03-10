@@ -87,7 +87,7 @@ func (t *tickerEventHandler) Unsubscribe(markets []string) error {
 
 	t.writechn <- newWebSocketMessage(actionUnsubscribe, channelNameTicker, markets)
 
-	return deleteSubscriptions(t.subs, closeInChannels(t.subs, markets), countSubscriptions(t.subs))
+	return deleteSubscriptions(t.subs, markets)
 }
 
 func (t *tickerEventHandler) UnsubscribeAll() error {
@@ -108,7 +108,7 @@ func (t *tickerEventHandler) handleMessage(bytes []byte) {
 		if exist {
 			sub.inchn <- *tickerEvent
 		} else {
-			log.Error().Str("market", market).Msg("There is no active subscription to handle this TickerEvent")
+			log.Debug().Str("market", market).Msg("There is no active subscription to handle this TickerEvent")
 		}
 	}
 }

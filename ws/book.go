@@ -87,7 +87,7 @@ func (b *bookEventHandler) Unsubscribe(markets []string) error {
 
 	b.writechn <- newWebSocketMessage(actionUnsubscribe, channelNameBook, markets)
 
-	return deleteSubscriptions(b.subs, closeInChannels(b.subs, markets), countSubscriptions(b.subs))
+	return deleteSubscriptions(b.subs, markets)
 }
 
 func (b *bookEventHandler) UnsubscribeAll() error {
@@ -108,7 +108,7 @@ func (b *bookEventHandler) handleMessage(bytes []byte) {
 		if exist {
 			sub.inchn <- *bookEvent
 		} else {
-			log.Error().Str("market", market).Msg("There is no active subscription to handle this BookEvent")
+			log.Debug().Str("market", market).Msg("There is no active subscription to handle this BookEvent")
 		}
 	}
 }

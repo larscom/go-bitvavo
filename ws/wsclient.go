@@ -62,7 +62,7 @@ type WsClient interface {
 	// Book event handler to handle book events and subscriptions.
 	Book() EventHandler[BookEvent]
 
-	// Account event handler to handle account subscription and order/fill events, requires authentication.
+	// Account event handler to handle order/fill events, requires authentication.
 	Account(apiKey string, apiSecret string) AccountEventHandler
 }
 

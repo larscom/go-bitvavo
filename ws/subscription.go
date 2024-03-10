@@ -81,7 +81,15 @@ func requireNoSubscription[T any](subs *safemap.SafeMap[string, T], markets []st
 	return nil
 }
 
-func closeInChannels[T any](subs *safemap.SafeMap[string, *subscription[T]], keys []string) map[uuid.UUID][]string {
+func deleteSubscriptions[T any](
+	subs *safemap.SafeMap[string, *subscription[T]],
+	keys []string,
+) error {
+	counts := make(map[uuid.UUID]int)
+	for item := range subs.IterBuffered() {
+		counts[item.Val.id]++
+	}
+
 	idsWithKeys := make(map[uuid.UUID][]string)
 	for _, key := range keys {
 		if sub, found := subs.Get(key); found {
@@ -89,16 +97,9 @@ func closeInChannels[T any](subs *safemap.SafeMap[string, *subscription[T]], key
 			close(sub.inchn)
 		}
 	}
-	return idsWithKeys
-}
 
-func deleteSubscriptions[T any](
-	subs *safemap.SafeMap[string, *subscription[T]],
-	idsWithKeys map[uuid.UUID][]string,
-	idsWithCount map[uuid.UUID]int,
-) error {
 	for id, key := range idsWithKeys {
-		if idsWithCount[id] == len(key) {
+		if counts[id] == len(key) {
 			if item, found := subs.Get(key[0]); found {
 				close(item.outchn)
 			}
@@ -109,12 +110,4 @@ func deleteSubscriptions[T any](
 	}
 
 	return nil
-}
-
-func countSubscriptions[T any](subs *safemap.SafeMap[string, *subscription[T]]) map[uuid.UUID]int {
-	idsWithCount := make(map[uuid.UUID]int)
-	for item := range subs.IterBuffered() {
-		idsWithCount[item.Val.id]++
-	}
-	return idsWithCount
 }

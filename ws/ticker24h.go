@@ -100,7 +100,7 @@ func (t *ticker24hEventHandler) Unsubscribe(markets []string) error {
 
 	t.writechn <- newWebSocketMessage(actionUnsubscribe, channelNameTicker24h, markets)
 
-	return deleteSubscriptions(t.subs, closeInChannels(t.subs, markets), countSubscriptions(t.subs))
+	return deleteSubscriptions(t.subs, markets)
 }
 
 func (t *ticker24hEventHandler) UnsubscribeAll() error {
@@ -121,7 +121,7 @@ func (t *ticker24hEventHandler) handleMessage(bytes []byte) {
 		if exist {
 			sub.inchn <- *ticker24hEvent
 		} else {
-			log.Error().Str("market", market).Msg("There is no active subscription to handle this Ticker24hEvent")
+			log.Debug().Str("market", market).Msg("There is no active subscription to handle this Ticker24hEvent")
 		}
 	}
 }
