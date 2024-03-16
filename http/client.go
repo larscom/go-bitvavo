@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -27,28 +28,31 @@ var (
 )
 
 func httpDelete[T any](
+	ctx context.Context,
 	url string,
 	params url.Values,
 	updateRateLimit func(ratelimit int64),
 	updateRateLimitResetAt func(resetAt time.Time),
 	config *authConfig,
 ) (T, error) {
-	req, _ := http.NewRequest("DELETE", createRequestUrl(url, params), nil)
+	req, _ := http.NewRequestWithContext(ctx, "DELETE", createRequestUrl(url, params), nil)
 	return httpDo[T](req, emptyBody, updateRateLimit, updateRateLimitResetAt, config)
 }
 
 func httpGet[T any](
+	ctx context.Context,
 	url string,
 	params url.Values,
 	updateRateLimit func(ratelimit int64),
 	updateRateLimitResetAt func(resetAt time.Time),
 	config *authConfig,
 ) (T, error) {
-	req, _ := http.NewRequest("GET", createRequestUrl(url, params), nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", createRequestUrl(url, params), nil)
 	return httpDo[T](req, emptyBody, updateRateLimit, updateRateLimitResetAt, config)
 }
 
 func httpPost[T any](
+	ctx context.Context,
 	url string,
 	body any,
 	params url.Values,
@@ -63,11 +67,12 @@ func httpPost[T any](
 	}
 	log.Debug().Str("body", string(payload)).Msg("created request body")
 
-	req, _ := http.NewRequest("POST", createRequestUrl(url, params), bytes.NewBuffer(payload))
+	req, _ := http.NewRequestWithContext(ctx, "POST", createRequestUrl(url, params), bytes.NewBuffer(payload))
 	return httpDo[T](req, payload, updateRateLimit, updateRateLimitResetAt, config)
 }
 
 func httpPut[T any](
+	ctx context.Context,
 	url string,
 	body any,
 	params url.Values,
@@ -82,7 +87,7 @@ func httpPut[T any](
 	}
 	log.Debug().Str("body", string(payload)).Msg("created request body")
 
-	req, _ := http.NewRequest("PUT", createRequestUrl(url, params), bytes.NewBuffer(payload))
+	req, _ := http.NewRequestWithContext(ctx, "PUT", createRequestUrl(url, params), bytes.NewBuffer(payload))
 	return httpDo[T](req, payload, updateRateLimit, updateRateLimitResetAt, config)
 }
 

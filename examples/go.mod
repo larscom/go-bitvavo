@@ -20,6 +20,6 @@ require (
 	github.com/orsinium-labs/enum v1.3.0 // indirect
 	github.com/rs/zerolog v1.32.0 // indirect
 	github.com/smallnest/safemap v0.0.0-20221221063619-2e3a9fa0ff20 // indirect
-	golang.org/x/net v0.21.0 // indirect
-	golang.org/x/sys v0.17.0 // indirect
+	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
 )

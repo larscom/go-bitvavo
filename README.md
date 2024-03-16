@@ -37,6 +37,8 @@ import "github.com/larscom/go-bitvavo/v2"
 
 ## 🌐 HTTP client
 
+Every function on the HTTP client has a `WithContext` variant so you can pass your own context as argument.
+
 ```go
 client := bitvavo.NewHttpClient()
 ```
@@ -52,6 +54,14 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println(time)
+
+	// provide your own context
+	time, err := client.GetTimeWithContext(context.TODO())
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(time)
+
 }
 
 ```
