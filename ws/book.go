@@ -63,7 +63,7 @@ func (b *bookEventHandler) Subscribe(markets []string, buffSize ...uint64) (<-ch
 
 	var (
 		size   = util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
-		outchn = make(chan BookEvent, size)
+		outchn = make(chan BookEvent, int(size)*len(markets))
 		id     = uuid.New()
 	)
 

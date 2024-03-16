@@ -113,7 +113,7 @@ func (c *candlesEventHandler) Subscribe(markets []string, interval string, buffS
 
 	var (
 		size   = util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
-		outchn = make(chan CandlesEvent, size)
+		outchn = make(chan CandlesEvent, int(size)*len(keys))
 		id     = uuid.New()
 	)
 

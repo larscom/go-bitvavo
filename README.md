@@ -88,8 +88,7 @@ func main() {
 
 By default, the websocket handler will try to reconnect to the websocket when the connection is lost, you can disable this behaviour in the options.
 
-For each subscription you can set the buffer size for the underlying channel. All channels have a default buffer size of `50` which should be
-sufficient in most cases. You may need to increase this number if you have a **large** amount of subscriptions.
+For each subscription you can set the buffer size for the underlying channel. All channels have a default buffer size of `50` which should be sufficient in most cases.
 
 ### Public Subscriptions
 
@@ -402,3 +401,11 @@ You can enable debug logging for the HTTP client and WS client.
 ```go
 bitvavo.EnableDebugLogging()
 ```
+
+## 👉🏼 Examples
+
+You can test the performance by cloning this project and running:
+
+`make ticker` or without make: `go run ./examples/ws/ticker/main.go`
+
+This command will subscribe to all available trading markets (websocket) and log the received tickers.

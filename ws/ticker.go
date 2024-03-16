@@ -63,7 +63,7 @@ func (t *tickerEventHandler) Subscribe(markets []string, buffSize ...uint64) (<-
 
 	var (
 		size   = util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
-		outchn = make(chan TickerEvent, size)
+		outchn = make(chan TickerEvent, int(size)*len(markets))
 		id     = uuid.New()
 	)
 

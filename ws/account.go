@@ -153,8 +153,8 @@ func (a *accountEventHandler) Subscribe(markets []string, buffSize ...uint64) (<
 
 	var (
 		size        = util.IfOrElse(len(buffSize) > 0, func() uint64 { return buffSize[0] }, defaultBuffSize)
-		orderoutchn = make(chan OrderEvent, size)
-		filloutchn  = make(chan FillEvent, size)
+		orderoutchn = make(chan OrderEvent, int(size)*len(markets))
+		filloutchn  = make(chan FillEvent, int(size)*len(markets))
 		id          = uuid.New()
 	)
 
