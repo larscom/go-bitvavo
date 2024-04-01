@@ -3,11 +3,11 @@ package ws
 import (
 	"github.com/google/uuid"
 	"github.com/larscom/go-bitvavo/v2/types"
+	csmap "github.com/mhmtszr/concurrent-swiss-map"
 	"github.com/rs/zerolog/log"
 
 	"github.com/goccy/go-json"
 	"github.com/larscom/go-bitvavo/v2/util"
-	"github.com/smallnest/safemap"
 )
 
 type TickerEvent struct {
@@ -44,13 +44,13 @@ func (t *TickerEvent) UnmarshalJSON(bytes []byte) error {
 
 type tickerEventHandler struct {
 	writechn chan<- WebSocketMessage
-	subs     *safemap.SafeMap[string, *subscription[TickerEvent]]
+	subs     *csmap.CsMap[string, *subscription[TickerEvent]]
 }
 
 func newTickerEventHandler(writechn chan<- WebSocketMessage) *tickerEventHandler {
 	return &tickerEventHandler{
 		writechn: writechn,
-		subs:     safemap.New[string, *subscription[TickerEvent]](),
+		subs:     csmap.Create[string, *subscription[TickerEvent]](),
 	}
 }
 
@@ -69,7 +69,7 @@ func (t *tickerEventHandler) Subscribe(markets []string, buffSize ...uint64) (<-
 
 	for _, market := range markets {
 		inchn := make(chan TickerEvent, size)
-		t.subs.Set(market, newSubscription(id, market, inchn, outchn))
+		t.subs.Store(market, newSubscription(id, market, inchn, outchn))
 		go relayMessages(inchn, outchn)
 	}
 
@@ -91,7 +91,7 @@ func (t *tickerEventHandler) Unsubscribe(markets []string) error {
 }
 
 func (t *tickerEventHandler) UnsubscribeAll() error {
-	if err := t.Unsubscribe(t.subs.Keys()); err != nil {
+	if err := t.Unsubscribe(getSubscriptionKeys(t.subs)); err != nil {
 		return err
 	}
 
@@ -104,7 +104,7 @@ func (t *tickerEventHandler) handleMessage(bytes []byte) {
 		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into TickerEvent")
 	} else {
 		market := tickerEvent.Market
-		sub, exist := t.subs.Get(market)
+		sub, exist := t.subs.Load(market)
 		if exist {
 			sub.inchn <- *tickerEvent
 		} else {
@@ -114,5 +114,5 @@ func (t *tickerEventHandler) handleMessage(bytes []byte) {
 }
 
 func (t *tickerEventHandler) reconnect() {
-	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTicker, t.subs.Keys())
+	t.writechn <- newWebSocketMessage(actionSubscribe, channelNameTicker, getSubscriptionKeys(t.subs))
 }

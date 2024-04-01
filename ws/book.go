@@ -3,11 +3,11 @@ package ws
 import (
 	"github.com/google/uuid"
 	"github.com/larscom/go-bitvavo/v2/types"
+	csmap "github.com/mhmtszr/concurrent-swiss-map"
 	"github.com/rs/zerolog/log"
 
 	"github.com/goccy/go-json"
 	"github.com/larscom/go-bitvavo/v2/util"
-	"github.com/smallnest/safemap"
 )
 
 type BookEvent struct {
@@ -44,13 +44,13 @@ func (b *BookEvent) UnmarshalJSON(bytes []byte) error {
 
 type bookEventHandler struct {
 	writechn chan<- WebSocketMessage
-	subs     *safemap.SafeMap[string, *subscription[BookEvent]]
+	subs     *csmap.CsMap[string, *subscription[BookEvent]]
 }
 
 func newBookEventHandler(writechn chan<- WebSocketMessage) *bookEventHandler {
 	return &bookEventHandler{
 		writechn: writechn,
-		subs:     safemap.New[string, *subscription[BookEvent]](),
+		subs:     csmap.Create[string, *subscription[BookEvent]](),
 	}
 }
 
@@ -69,7 +69,7 @@ func (b *bookEventHandler) Subscribe(markets []string, buffSize ...uint64) (<-ch
 
 	for _, market := range markets {
 		inchn := make(chan BookEvent, size)
-		b.subs.Set(market, newSubscription(id, market, inchn, outchn))
+		b.subs.Store(market, newSubscription(id, market, inchn, outchn))
 		go relayMessages(inchn, outchn)
 	}
 
@@ -91,7 +91,7 @@ func (b *bookEventHandler) Unsubscribe(markets []string) error {
 }
 
 func (b *bookEventHandler) UnsubscribeAll() error {
-	if err := b.Unsubscribe(b.subs.Keys()); err != nil {
+	if err := b.Unsubscribe(getSubscriptionKeys(b.subs)); err != nil {
 		return err
 	}
 
@@ -104,7 +104,7 @@ func (b *bookEventHandler) handleMessage(bytes []byte) {
 		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into BookEvent")
 	} else {
 		market := bookEvent.Market
-		sub, exist := b.subs.Get(market)
+		sub, exist := b.subs.Load(market)
 		if exist {
 			sub.inchn <- *bookEvent
 		} else {
@@ -114,5 +114,5 @@ func (b *bookEventHandler) handleMessage(bytes []byte) {
 }
 
 func (b *bookEventHandler) reconnect() {
-	b.writechn <- newWebSocketMessage(actionSubscribe, channelNameBook, b.subs.Keys())
+	b.writechn <- newWebSocketMessage(actionSubscribe, channelNameBook, getSubscriptionKeys(b.subs))
 }

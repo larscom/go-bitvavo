@@ -7,10 +7,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/larscom/go-bitvavo/v2/types"
 	"github.com/larscom/go-bitvavo/v2/util"
+	csmap "github.com/mhmtszr/concurrent-swiss-map"
 	"github.com/rs/zerolog/log"
 
 	"github.com/goccy/go-json"
-	"github.com/smallnest/safemap"
 )
 
 type CandlesEvent struct {
@@ -78,13 +78,13 @@ type CandlesEventHandler interface {
 
 type candlesEventHandler struct {
 	writechn chan<- WebSocketMessage
-	subs     *safemap.SafeMap[string, *subscription[CandlesEvent]]
+	subs     *csmap.CsMap[string, *subscription[CandlesEvent]]
 }
 
 func newCandlesEventHandler(writechn chan<- WebSocketMessage) *candlesEventHandler {
 	return &candlesEventHandler{
 		writechn: writechn,
-		subs:     safemap.New[string, *subscription[CandlesEvent]](),
+		subs:     csmap.Create[string, *subscription[CandlesEvent]](),
 	}
 }
 
@@ -119,7 +119,7 @@ func (c *candlesEventHandler) Subscribe(markets []string, interval string, buffS
 
 	for i, key := range keys {
 		inchn := make(chan CandlesEvent, size)
-		c.subs.Set(key, newSubscription(id, markets[i], inchn, outchn))
+		c.subs.Store(key, newSubscription(id, markets[i], inchn, outchn))
 		go relayMessages(inchn, outchn)
 	}
 
@@ -165,7 +165,7 @@ func (c *candlesEventHandler) handleMessage(bytes []byte) {
 			key      = c.createKey(market, interval)
 		)
 
-		sub, exist := c.subs.Get(key)
+		sub, exist := c.subs.Load(key)
 		if exist {
 			sub.inchn <- *candleEvent
 		} else {
@@ -183,10 +183,11 @@ func (c *candlesEventHandler) reconnect() {
 func (c *candlesEventHandler) getIntervalMarkets() map[string][]string {
 	m := make(map[string][]string)
 
-	for sub := range c.subs.IterBuffered() {
-		market, interval := c.parseKey(sub.Key)
+	c.subs.Range(func(key string, _ *subscription[CandlesEvent]) (stop bool) {
+		market, interval := c.parseKey(key)
 		m[interval] = append(m[interval], market)
-	}
+		return false
+	})
 
 	return m
 }

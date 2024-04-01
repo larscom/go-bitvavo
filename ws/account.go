@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/larscom/go-bitvavo/v2/types"
-	"github.com/smallnest/safemap"
+	csmap "github.com/mhmtszr/concurrent-swiss-map"
 )
 
 type OrderEvent struct {
@@ -125,7 +125,7 @@ type accountEventHandler struct {
 	authenticated bool
 	authchn       chan bool
 	writechn      chan<- WebSocketMessage
-	subs          *safemap.SafeMap[string, *accountSubscription]
+	subs          *csmap.CsMap[string, *accountSubscription]
 }
 
 func newAccountEventHandler(apiKey string, apiSecret string, writechn chan<- WebSocketMessage) *accountEventHandler {
@@ -134,7 +134,7 @@ func newAccountEventHandler(apiKey string, apiSecret string, writechn chan<- Web
 		apiSecret: apiSecret,
 		writechn:  writechn,
 		authchn:   make(chan bool),
-		subs:      safemap.New[string, *accountSubscription](),
+		subs:      csmap.Create[string, *accountSubscription](),
 	}
 }
 
@@ -162,7 +162,7 @@ func (a *accountEventHandler) Subscribe(markets []string, buffSize ...uint64) (<
 		orderinchn := make(chan OrderEvent, size)
 		fillinchn := make(chan FillEvent, size)
 
-		a.subs.Set(market, newAccountSubscription(id, market, orderinchn, orderoutchn, fillinchn, filloutchn))
+		a.subs.Store(market, newAccountSubscription(id, market, orderinchn, orderoutchn, fillinchn, filloutchn))
 
 		go relayMessages(orderinchn, orderoutchn)
 		go relayMessages(fillinchn, filloutchn)
@@ -189,7 +189,7 @@ func (a *accountEventHandler) Unsubscribe(markets []string) error {
 }
 
 func (a *accountEventHandler) UnsubscribeAll() error {
-	if err := a.Unsubscribe(a.subs.Keys()); err != nil {
+	if err := a.Unsubscribe(getSubscriptionKeys(a.subs)); err != nil {
 		return err
 	}
 
@@ -202,7 +202,7 @@ func (a *accountEventHandler) handleOrderMessage(bytes []byte) {
 		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into OrderEvent")
 	} else {
 		market := orderEvent.Market
-		sub, exist := a.subs.Get(market)
+		sub, exist := a.subs.Load(market)
 		if exist {
 			sub.orderinchn <- *orderEvent
 		} else {
@@ -217,7 +217,7 @@ func (a *accountEventHandler) handleFillMessage(bytes []byte) {
 		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into FillEvent")
 	} else {
 		market := fillEvent.Market
-		sub, exist := a.subs.Get(market)
+		sub, exist := a.subs.Load(market)
 		if exist {
 			sub.fillinchn <- *fillEvent
 		} else {
@@ -255,7 +255,7 @@ func (a *accountEventHandler) reconnect() {
 	a.authenticated = false
 
 	if err := a.withAuth(func() {
-		a.writechn <- newWebSocketMessage(actionSubscribe, channelNameAccount, a.subs.Keys())
+		a.writechn <- newWebSocketMessage(actionSubscribe, channelNameAccount, getSubscriptionKeys(a.subs))
 	}); err != nil {
 		log.Err(err).Msg("Failed to reconnect the account websocket")
 	}
@@ -275,17 +275,18 @@ func (a *accountEventHandler) withAuth(action func()) error {
 }
 
 func (a *accountEventHandler) deleteSubscriptions(
-	subs *safemap.SafeMap[string, *accountSubscription],
+	subs *csmap.CsMap[string, *accountSubscription],
 	markets []string,
 ) error {
 	counts := make(map[uuid.UUID]int)
-	for item := range subs.IterBuffered() {
-		counts[item.Val.id]++
-	}
+	subs.Range(func(key string, value *accountSubscription) (stop bool) {
+		counts[value.id]++
+		return false
+	})
 
 	idsWithKeys := make(map[uuid.UUID][]string)
 	for _, key := range markets {
-		if sub, found := subs.Get(key); found {
+		if sub, found := subs.Load(key); found {
 			idsWithKeys[sub.id] = append(idsWithKeys[sub.id], key)
 			close(sub.orderinchn)
 			close(sub.fillinchn)
@@ -294,13 +295,13 @@ func (a *accountEventHandler) deleteSubscriptions(
 
 	for id, keys := range idsWithKeys {
 		if counts[id] == len(keys) {
-			if item, found := subs.Get(keys[0]); found {
+			if item, found := subs.Load(keys[0]); found {
 				close(item.orderoutchn)
 				close(item.filloutchn)
 			}
 		}
 		for _, key := range keys {
-			subs.Remove(key)
+			subs.Delete(key)
 		}
 	}
 

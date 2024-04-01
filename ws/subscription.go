@@ -2,8 +2,8 @@ package ws
 
 import (
 	"github.com/google/uuid"
+	csmap "github.com/mhmtszr/concurrent-swiss-map"
 	"github.com/orsinium-labs/enum"
-	"github.com/smallnest/safemap"
 )
 
 type WsEvent enum.Member[string]
@@ -57,13 +57,22 @@ func newSubscription[T any](id uuid.UUID, market string, inchn chan<- T, outchn 
 	}
 }
 
+func getSubscriptionKeys[K comparable, V any](data *csmap.CsMap[K, V]) []K {
+	keys := make([]K, 0)
+	data.Range(func(key K, value V) (stop bool) {
+		keys = append(keys, key)
+		return false
+	})
+	return keys
+}
+
 func relayMessages[T any](in <-chan T, out chan<- T) {
 	for msg := range in {
 		out <- msg
 	}
 }
 
-func requireSubscription[T any](subs *safemap.SafeMap[string, T], markets []string) error {
+func requireSubscription[T any](subs *csmap.CsMap[string, T], markets []string) error {
 	for _, market := range markets {
 		if !subs.Has(market) {
 			return errNoSubscriptionActive(market)
@@ -72,7 +81,7 @@ func requireSubscription[T any](subs *safemap.SafeMap[string, T], markets []stri
 	return nil
 }
 
-func requireNoSubscription[T any](subs *safemap.SafeMap[string, T], markets []string) error {
+func requireNoSubscription[T any](subs *csmap.CsMap[string, T], markets []string) error {
 	for _, market := range markets {
 		if subs.Has(market) {
 			return errSubscriptionAlreadyActive(market)
@@ -82,17 +91,18 @@ func requireNoSubscription[T any](subs *safemap.SafeMap[string, T], markets []st
 }
 
 func deleteSubscriptions[T any](
-	subs *safemap.SafeMap[string, *subscription[T]],
+	subs *csmap.CsMap[string, *subscription[T]],
 	keys []string,
 ) error {
 	counts := make(map[uuid.UUID]int)
-	for item := range subs.IterBuffered() {
-		counts[item.Val.id]++
-	}
+	subs.Range(func(key string, value *subscription[T]) (stop bool) {
+		counts[value.id]++
+		return false
+	})
 
 	idsWithKeys := make(map[uuid.UUID][]string)
 	for _, key := range keys {
-		if sub, found := subs.Get(key); found {
+		if sub, found := subs.Load(key); found {
 			idsWithKeys[sub.id] = append(idsWithKeys[sub.id], key)
 			close(sub.inchn)
 		}
@@ -100,12 +110,12 @@ func deleteSubscriptions[T any](
 
 	for id, keys := range idsWithKeys {
 		if counts[id] == len(keys) {
-			if item, found := subs.Get(keys[0]); found {
+			if item, found := subs.Load(keys[0]); found {
 				close(item.outchn)
 			}
 		}
 		for _, key := range keys {
-			subs.Remove(key)
+			subs.Delete(key)
 		}
 	}
 
