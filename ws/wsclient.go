@@ -81,18 +81,8 @@ type wsClient struct {
 	writechn       chan WebSocketMessage
 	errchn         chan<- error
 
-	// all registered handlers
+	// all registered event handlers
 	handlers []handler
-
-	// public
-	candlesEventHandler   *candlesEventHandler
-	tickerEventHandler    *tickerEventHandler
-	ticker24hEventHandler *ticker24hEventHandler
-	tradesEventHandler    *tradesEventHandler
-	bookEventHandler      *bookEventHandler
-
-	// authenticated
-	accountEventHandler *accountEventHandler
 }
 
 func NewWsClient(options ...Option) (WsClient, error) {
@@ -151,7 +141,6 @@ func (ws *wsClient) Candles() CandlesEventHandler {
 
 	handler := newCandlesEventHandler(ws.writechn)
 	ws.handlers = append(ws.handlers, handler)
-	ws.candlesEventHandler = handler
 
 	return handler
 }
@@ -165,7 +154,6 @@ func (ws *wsClient) Ticker() EventHandler[TickerEvent] {
 
 	handler := newTickerEventHandler(ws.writechn)
 	ws.handlers = append(ws.handlers, handler)
-	ws.tickerEventHandler = handler
 
 	return handler
 }
@@ -179,7 +167,6 @@ func (ws *wsClient) Ticker24h() EventHandler[Ticker24hEvent] {
 
 	handler := newTicker24hEventHandler(ws.writechn)
 	ws.handlers = append(ws.handlers, handler)
-	ws.ticker24hEventHandler = handler
 
 	return handler
 }
@@ -193,7 +180,6 @@ func (ws *wsClient) Trades() EventHandler[TradesEvent] {
 
 	handler := newTradesEventHandler(ws.writechn)
 	ws.handlers = append(ws.handlers, handler)
-	ws.tradesEventHandler = handler
 
 	return handler
 }
@@ -207,7 +193,6 @@ func (ws *wsClient) Book() EventHandler[BookEvent] {
 
 	handler := newBookEventHandler(ws.writechn)
 	ws.handlers = append(ws.handlers, handler)
-	ws.bookEventHandler = handler
 
 	return handler
 }
@@ -221,7 +206,6 @@ func (ws *wsClient) Account(apiKey string, apiSecret string) AccountEventHandler
 
 	handler := newAccountEventHandler(apiKey, apiSecret, ws.writechn)
 	ws.handlers = append(ws.handlers, handler)
-	ws.accountEventHandler = handler
 
 	return handler
 }
