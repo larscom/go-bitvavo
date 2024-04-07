@@ -20,6 +20,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer ws.Close()
 
 	orderchn, fillchn, err := ws.Account(key, secret).Subscribe([]string{"ETH-EUR", "BTC-EUR"})
 	if err != nil {

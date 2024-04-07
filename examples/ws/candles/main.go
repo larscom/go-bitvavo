@@ -11,6 +11,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer ws.Close()
 
 	candlechn, err := ws.Candles().Subscribe([]string{"BTC-EUR", "ETH-EUR", "XLM-EUR"}, "5m")
 	if err != nil {

@@ -11,6 +11,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer ws.Close()
 
 	bookchn, err := ws.Book().Subscribe([]string{"ETH-EUR"})
 	if err != nil {

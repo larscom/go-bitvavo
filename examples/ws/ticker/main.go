@@ -23,6 +23,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer ws.Close()
 
 	// subscribe to all available 'trading' markets
 	tickerchn, err := ws.Ticker().Subscribe(tradingMarkets)

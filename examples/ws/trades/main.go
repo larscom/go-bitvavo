@@ -11,6 +11,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer ws.Close()
 
 	tradeschn, err := ws.Trades().Subscribe([]string{"ETH-EUR"})
 	if err != nil {
