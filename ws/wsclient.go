@@ -66,12 +66,23 @@ type WsClient interface {
 	Account(apiKey string, apiSecret string) AccountEventHandler
 }
 
+type handler interface {
+	UnsubscribeAll() error
+
+	reconnect()
+
+	handleMessage(e WsEvent, bytes []byte)
+}
+
 type wsClient struct {
 	reconnectCount uint64
 	autoReconnect  bool
 	conn           *websocket.Conn
 	writechn       chan WebSocketMessage
 	errchn         chan<- error
+
+	// all registered handlers
+	handlers []handler
 
 	// public
 	candlesEventHandler   *candlesEventHandler
@@ -94,6 +105,7 @@ func NewWsClient(options ...Option) (WsClient, error) {
 		conn:          conn,
 		autoReconnect: true,
 		writechn:      make(chan WebSocketMessage),
+		handlers:      make([]handler, 0),
 	}
 	for _, opt := range options {
 		opt(ws)
@@ -131,61 +143,95 @@ func WithWriteBuffSize(buffSize uint64) Option {
 }
 
 func (ws *wsClient) Candles() CandlesEventHandler {
-	if ws.hasCandleHandler() {
-		return ws.candlesEventHandler
+	for _, h := range ws.handlers {
+		if handler, ok := h.(*candlesEventHandler); ok {
+			return handler
+		}
 	}
 
-	ws.candlesEventHandler = newCandlesEventHandler(ws.writechn)
-	return ws.candlesEventHandler
+	handler := newCandlesEventHandler(ws.writechn)
+	ws.handlers = append(ws.handlers, handler)
+	ws.candlesEventHandler = handler
+
+	return handler
 }
 
 func (ws *wsClient) Ticker() EventHandler[TickerEvent] {
-	if ws.hasTickerHandler() {
-		return ws.tickerEventHandler
+	for _, h := range ws.handlers {
+		if handler, ok := h.(*tickerEventHandler); ok {
+			return handler
+		}
 	}
 
-	ws.tickerEventHandler = newTickerEventHandler(ws.writechn)
-	return ws.tickerEventHandler
+	handler := newTickerEventHandler(ws.writechn)
+	ws.handlers = append(ws.handlers, handler)
+	ws.tickerEventHandler = handler
+
+	return handler
 }
 
 func (ws *wsClient) Ticker24h() EventHandler[Ticker24hEvent] {
-	if ws.hasTicker24hHandler() {
-		return ws.ticker24hEventHandler
+	for _, h := range ws.handlers {
+		if handler, ok := h.(*ticker24hEventHandler); ok {
+			return handler
+		}
 	}
 
-	ws.ticker24hEventHandler = newTicker24hEventHandler(ws.writechn)
-	return ws.ticker24hEventHandler
+	handler := newTicker24hEventHandler(ws.writechn)
+	ws.handlers = append(ws.handlers, handler)
+	ws.ticker24hEventHandler = handler
+
+	return handler
 }
 
 func (ws *wsClient) Trades() EventHandler[TradesEvent] {
-	if ws.hasTradesHandler() {
-		return ws.tradesEventHandler
+	for _, h := range ws.handlers {
+		if handler, ok := h.(*tradesEventHandler); ok {
+			return handler
+		}
 	}
 
-	ws.tradesEventHandler = newTradesEventHandler(ws.writechn)
-	return ws.tradesEventHandler
+	handler := newTradesEventHandler(ws.writechn)
+	ws.handlers = append(ws.handlers, handler)
+	ws.tradesEventHandler = handler
+
+	return handler
 }
 
 func (ws *wsClient) Book() EventHandler[BookEvent] {
-	if ws.hasBookHandler() {
-		return ws.bookEventHandler
+	for _, h := range ws.handlers {
+		if handler, ok := h.(*bookEventHandler); ok {
+			return handler
+		}
 	}
 
-	ws.bookEventHandler = newBookEventHandler(ws.writechn)
-	return ws.bookEventHandler
+	handler := newBookEventHandler(ws.writechn)
+	ws.handlers = append(ws.handlers, handler)
+	ws.bookEventHandler = handler
+
+	return handler
 }
 
 func (ws *wsClient) Account(apiKey string, apiSecret string) AccountEventHandler {
-	if ws.hasAccountHandler() {
-		return ws.accountEventHandler
+	for _, h := range ws.handlers {
+		if handler, ok := h.(*accountEventHandler); ok {
+			return handler
+		}
 	}
 
-	ws.accountEventHandler = newAccountEventHandler(apiKey, apiSecret, ws.writechn)
-	return ws.accountEventHandler
+	handler := newAccountEventHandler(apiKey, apiSecret, ws.writechn)
+	ws.handlers = append(ws.handlers, handler)
+	ws.accountEventHandler = handler
+
+	return handler
 }
 
 func (ws *wsClient) Close() error {
-	close(ws.writechn)
+	defer close(ws.writechn)
+
+	for _, handler := range ws.handlers {
+		handler.UnsubscribeAll()
+	}
 
 	if ws.hasErrorChannel() {
 		close(ws.errchn)
@@ -228,6 +274,7 @@ func (ws *wsClient) readLoop() {
 		_, bytes, err := ws.conn.ReadMessage()
 		if err != nil {
 			defer ws.reconnect()
+
 			log.Err(err).Msg("Read failed")
 			if ws.hasErrorChannel() {
 				ws.errchn <- err
@@ -267,23 +314,8 @@ func (ws *wsClient) reconnect() {
 
 	go ws.readLoop()
 
-	if ws.hasCandleHandler() {
-		ws.candlesEventHandler.reconnect()
-	}
-	if ws.hasTickerHandler() {
-		ws.tickerEventHandler.reconnect()
-	}
-	if ws.hasTicker24hHandler() {
-		ws.ticker24hEventHandler.reconnect()
-	}
-	if ws.hasTradesHandler() {
-		ws.tradesEventHandler.reconnect()
-	}
-	if ws.hasBookHandler() {
-		ws.bookEventHandler.reconnect()
-	}
-	if ws.hasAccountHandler() {
-		ws.accountEventHandler.reconnect()
+	for _, handler := range ws.handlers {
+		handler.reconnect()
 	}
 }
 
@@ -340,23 +372,23 @@ func (ws *wsClient) handleEvent(e *BaseEvent, bytes []byte) {
 	case wsEventUnsubscribed.Value:
 		ws.handleUnsubscribedEvent(bytes)
 	case wsEventCandles.Value:
-		ws.handleCandleEvent(bytes)
+		ws.handleCandleEvent(wsEventCandles, bytes)
 	case wsEventTicker.Value:
-		ws.handleTickerEvent(bytes)
+		ws.handleTickerEvent(wsEventTicker, bytes)
 	case wsEventTicker24h.Value:
-		ws.handleTicker24hEvent(bytes)
+		ws.handleTicker24hEvent(wsEventTicker24h, bytes)
 	case wsEventTrades.Value:
-		ws.handleTradesEvent(bytes)
+		ws.handleTradesEvent(wsEventTrades, bytes)
 	case wsEventBook.Value:
-		ws.handleBookEvent(bytes)
+		ws.handleBookEvent(wsEventBook, bytes)
 
 	// authenticated
 	case wsEventAuth.Value:
-		ws.handleAuthEvent(bytes)
+		ws.handleAuthEvent(wsEventAuth, bytes)
 	case wsEventOrder.Value:
-		ws.handleOrderEvent(bytes)
+		ws.handleOrderEvent(wsEventOrder, bytes)
 	case wsEventFill.Value:
-		ws.handleFillEvent(bytes)
+		ws.handleFillEvent(wsEventFill, bytes)
 
 	default:
 		log.Error().Msg("Could not handle event, invalid parameters provided?")
@@ -374,94 +406,86 @@ func (ws *wsClient) handleUnsubscribedEvent(bytes []byte) {
 	log.Debug().Str("message", string(bytes)).Msg("Received unsubscribed event")
 }
 
-func (ws *wsClient) handleCandleEvent(bytes []byte) {
+func (ws *wsClient) handleCandleEvent(e WsEvent, bytes []byte) {
 	log.Debug().Str("message", string(bytes)).Msg("Received candles event")
 
-	if ws.hasCandleHandler() {
-		ws.candlesEventHandler.handleMessage(bytes)
+	for _, h := range ws.handlers {
+		if handler, ok := h.(*candlesEventHandler); ok {
+			handler.handleMessage(e, bytes)
+		}
 	}
 }
 
-func (ws *wsClient) handleTickerEvent(bytes []byte) {
+func (ws *wsClient) handleTickerEvent(e WsEvent, bytes []byte) {
 	log.Debug().Str("message", string(bytes)).Msg("Received ticker event")
 
-	if ws.hasTickerHandler() {
-		ws.tickerEventHandler.handleMessage(bytes)
+	for _, h := range ws.handlers {
+		if handler, ok := h.(*tickerEventHandler); ok {
+			handler.handleMessage(e, bytes)
+		}
 	}
 }
 
-func (ws *wsClient) handleTicker24hEvent(bytes []byte) {
+func (ws *wsClient) handleTicker24hEvent(e WsEvent, bytes []byte) {
 	log.Debug().Str("message", string(bytes)).Msg("Received ticker24h event")
 
-	if ws.hasTicker24hHandler() {
-		ws.ticker24hEventHandler.handleMessage(bytes)
+	for _, h := range ws.handlers {
+		if handler, ok := h.(*ticker24hEventHandler); ok {
+			handler.handleMessage(e, bytes)
+		}
 	}
 }
 
-func (ws *wsClient) handleTradesEvent(bytes []byte) {
+func (ws *wsClient) handleTradesEvent(e WsEvent, bytes []byte) {
 	log.Debug().Str("message", string(bytes)).Msg("Received trades event")
 
-	if ws.hasTradesHandler() {
-		ws.tradesEventHandler.handleMessage(bytes)
+	for _, h := range ws.handlers {
+		if handler, ok := h.(*tradesEventHandler); ok {
+			handler.handleMessage(e, bytes)
+		}
 	}
 }
 
-func (ws *wsClient) handleBookEvent(bytes []byte) {
+func (ws *wsClient) handleBookEvent(e WsEvent, bytes []byte) {
 	log.Debug().Str("message", string(bytes)).Msg("Received book event")
 
-	if ws.hasBookHandler() {
-		ws.bookEventHandler.handleMessage(bytes)
+	for _, h := range ws.handlers {
+		if handler, ok := h.(*bookEventHandler); ok {
+			handler.handleMessage(e, bytes)
+		}
 	}
 }
 
-func (ws *wsClient) handleOrderEvent(bytes []byte) {
+func (ws *wsClient) handleOrderEvent(e WsEvent, bytes []byte) {
 	log.Debug().Str("message", string(bytes)).Msg("Received order event")
 
-	if ws.hasAccountHandler() {
-		ws.accountEventHandler.handleOrderMessage(bytes)
+	for _, h := range ws.handlers {
+		if handler, ok := h.(*accountEventHandler); ok {
+			handler.handleMessage(e, bytes)
+		}
 	}
 }
 
-func (ws *wsClient) handleFillEvent(bytes []byte) {
+func (ws *wsClient) handleFillEvent(e WsEvent, bytes []byte) {
 	log.Debug().Str("message", string(bytes)).Msg("Received fill event")
 
-	if ws.hasAccountHandler() {
-		ws.accountEventHandler.handleFillMessage(bytes)
+	for _, h := range ws.handlers {
+		if handler, ok := h.(*accountEventHandler); ok {
+			handler.handleMessage(e, bytes)
+		}
 	}
 }
 
-func (ws *wsClient) handleAuthEvent(bytes []byte) {
+func (ws *wsClient) handleAuthEvent(e WsEvent, bytes []byte) {
 	log.Debug().Str("message", string(bytes)).Msg("Received auth event")
 
-	if ws.hasAccountHandler() {
-		ws.accountEventHandler.handleAuthMessage(bytes)
+	for _, h := range ws.handlers {
+		if handler, ok := h.(*accountEventHandler); ok {
+			handler.handleMessage(e, bytes)
+		}
 	}
 }
 
 func (ws *wsClient) hasErrorChannel() bool {
 	return ws.errchn != nil
-}
-
-func (ws *wsClient) hasCandleHandler() bool {
-	return ws.candlesEventHandler != nil
-}
-
-func (ws *wsClient) hasTickerHandler() bool {
-	return ws.tickerEventHandler != nil
-}
-
-func (ws *wsClient) hasTicker24hHandler() bool {
-	return ws.ticker24hEventHandler != nil
-}
-
-func (ws *wsClient) hasTradesHandler() bool {
-	return ws.tradesEventHandler != nil
-}
-
-func (ws *wsClient) hasBookHandler() bool {
-	return ws.bookEventHandler != nil
-}
-
-func (ws *wsClient) hasAccountHandler() bool {
-	return ws.accountEventHandler != nil
 }

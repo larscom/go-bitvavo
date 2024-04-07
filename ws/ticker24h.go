@@ -111,7 +111,7 @@ func (t *ticker24hEventHandler) UnsubscribeAll() error {
 	return nil
 }
 
-func (t *ticker24hEventHandler) handleMessage(bytes []byte) {
+func (t *ticker24hEventHandler) handleMessage(_ WsEvent, bytes []byte) {
 	var ticker24hEvent *Ticker24hEvent
 	if err := json.Unmarshal(bytes, &ticker24hEvent); err != nil {
 		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into Ticker24hEvent")

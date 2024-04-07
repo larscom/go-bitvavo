@@ -196,6 +196,19 @@ func (a *accountEventHandler) UnsubscribeAll() error {
 	return nil
 }
 
+func (a *accountEventHandler) handleMessage(e WsEvent, bytes []byte) {
+	switch e {
+	case wsEventAuth:
+		a.handleAuthMessage(bytes)
+	case wsEventOrder:
+		a.handleOrderMessage(bytes)
+	case wsEventFill:
+		a.handleFillMessage(bytes)
+	default:
+		log.Debug().Str("event", e.Value).Msg("no handler for this account event (should not happen)")
+	}
+}
+
 func (a *accountEventHandler) handleOrderMessage(bytes []byte) {
 	var orderEvent *OrderEvent
 	if err := json.Unmarshal(bytes, &orderEvent); err != nil {
