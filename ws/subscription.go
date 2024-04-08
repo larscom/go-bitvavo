@@ -19,6 +19,18 @@ var (
 	wsEventAuth         = WsEvent{"authenticate"}
 	wsEventOrder        = WsEvent{"order"}
 	wsEventFill         = WsEvent{"fill"}
+	wsEvents            = enum.New(
+		wsEventSubscribed,
+		wsEventUnsubscribed,
+		wsEventCandles,
+		wsEventTicker,
+		wsEventTicker24h,
+		wsEventTrades,
+		wsEventBook,
+		wsEventAuth,
+		wsEventOrder,
+		wsEventFill,
+	)
 )
 
 type Action enum.Member[string]

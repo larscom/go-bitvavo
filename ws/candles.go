@@ -154,7 +154,13 @@ func (c *candlesEventHandler) UnsubscribeAll() error {
 	return nil
 }
 
-func (c *candlesEventHandler) handleMessage(_ WsEvent, bytes []byte) {
+func (c *candlesEventHandler) handleMessage(e WsEvent, bytes []byte) {
+	if e != wsEventCandles {
+		return
+	}
+
+	log.Debug().Str("message", string(bytes)).Msg("Received candles event")
+
 	var candleEvent *CandlesEvent
 	if err := json.Unmarshal(bytes, &candleEvent); err != nil {
 		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into CandlesEvent")

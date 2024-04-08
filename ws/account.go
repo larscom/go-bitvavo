@@ -210,6 +210,8 @@ func (a *accountEventHandler) handleMessage(e WsEvent, bytes []byte) {
 }
 
 func (a *accountEventHandler) handleOrderMessage(bytes []byte) {
+	log.Debug().Str("message", string(bytes)).Msg("Received order event")
+
 	var orderEvent *OrderEvent
 	if err := json.Unmarshal(bytes, &orderEvent); err != nil {
 		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into OrderEvent")
@@ -225,6 +227,8 @@ func (a *accountEventHandler) handleOrderMessage(bytes []byte) {
 }
 
 func (a *accountEventHandler) handleFillMessage(bytes []byte) {
+	log.Debug().Str("message", string(bytes)).Msg("Received fill event")
+
 	var fillEvent *FillEvent
 	if err := json.Unmarshal(bytes, &fillEvent); err != nil {
 		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into FillEvent")
@@ -240,6 +244,8 @@ func (a *accountEventHandler) handleFillMessage(bytes []byte) {
 }
 
 func (a *accountEventHandler) handleAuthMessage(bytes []byte) {
+	log.Debug().Str("message", string(bytes)).Msg("Received auth event")
+
 	var authEvent *AuthEvent
 	if err := json.Unmarshal(bytes, &authEvent); err != nil {
 		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into AuthEvent")

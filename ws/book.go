@@ -98,7 +98,13 @@ func (b *bookEventHandler) UnsubscribeAll() error {
 	return nil
 }
 
-func (b *bookEventHandler) handleMessage(_ WsEvent, bytes []byte) {
+func (b *bookEventHandler) handleMessage(e WsEvent, bytes []byte) {
+	if e != wsEventBook {
+		return
+	}
+
+	log.Debug().Str("message", string(bytes)).Msg("Received book event")
+
 	var bookEvent *BookEvent
 	if err := json.Unmarshal(bytes, &bookEvent); err != nil {
 		log.Err(err).Str("message", string(bytes)).Msg("Couldn't unmarshal message into BookEvent")

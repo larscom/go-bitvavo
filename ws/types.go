@@ -1,5 +1,11 @@
 package ws
 
+import (
+	"fmt"
+
+	"github.com/goccy/go-json"
+)
+
 type AuthEvent struct {
 	// Describes the returned event over the socket.
 	Event string `json:"event"`
@@ -9,7 +15,26 @@ type AuthEvent struct {
 }
 
 type BaseEvent struct {
-	Event string `json:"event"`
+	Event WsEvent `json:"event"`
+}
+
+func (b *BaseEvent) UnmarshalJSON(bytes []byte) error {
+	var j map[string]any
+
+	if err := json.Unmarshal(bytes, &j); err != nil {
+		return err
+	}
+
+	e := j["event"].(string)
+
+	event := wsEvents.Parse(e)
+	if event == nil {
+		return fmt.Errorf("unknown event type: %s", e)
+	}
+
+	b.Event = *event
+
+	return nil
 }
 
 type WebSocketMessage struct {

@@ -24,7 +24,6 @@ var (
 	errNoSubscriptionActive      = func(market string) error { return fmt.Errorf("no active subscription for market: %s", market) }
 	errSubscriptionAlreadyActive = func(market string) error { return fmt.Errorf("subscription already active for market: %s", market) }
 	errAuthenticationFailed      = errors.New("could not subscribe, authentication failed")
-	errEventHandler              = errors.New("could not handle event")
 )
 
 type EventHandler[T any] interface {
@@ -347,125 +346,16 @@ func (ws *wsClient) handlError(err *types.BitvavoErr) {
 }
 
 func (ws *wsClient) handleEvent(e *BaseEvent, bytes []byte) {
-	log.Debug().Str("event", e.Event).Msg("Handling incoming message")
+	log.Debug().Str("event", e.Event.Value).Msg("Handling incoming event")
 
 	switch e.Event {
-	// public
-	case wsEventSubscribed.Value:
-		ws.handleSubscribedEvent(bytes)
-	case wsEventUnsubscribed.Value:
-		ws.handleUnsubscribedEvent(bytes)
-	case wsEventCandles.Value:
-		ws.handleCandleEvent(wsEventCandles, bytes)
-	case wsEventTicker.Value:
-		ws.handleTickerEvent(wsEventTicker, bytes)
-	case wsEventTicker24h.Value:
-		ws.handleTicker24hEvent(wsEventTicker24h, bytes)
-	case wsEventTrades.Value:
-		ws.handleTradesEvent(wsEventTrades, bytes)
-	case wsEventBook.Value:
-		ws.handleBookEvent(wsEventBook, bytes)
-
-	// authenticated
-	case wsEventAuth.Value:
-		ws.handleAuthEvent(wsEventAuth, bytes)
-	case wsEventOrder.Value:
-		ws.handleOrderEvent(wsEventOrder, bytes)
-	case wsEventFill.Value:
-		ws.handleFillEvent(wsEventFill, bytes)
-
+	case wsEventSubscribed:
+		log.Debug().Str("message", string(bytes)).Msg("Received subscribed event")
+	case wsEventUnsubscribed:
+		log.Debug().Str("message", string(bytes)).Msg("Received unsubscribed event")
 	default:
-		log.Error().Msg("Could not handle event, invalid parameters provided?")
-		if ws.hasErrorChannel() {
-			ws.errchn <- errEventHandler
-		}
-	}
-}
-
-func (ws *wsClient) handleSubscribedEvent(bytes []byte) {
-	log.Debug().Str("message", string(bytes)).Msg("Received subscribed event")
-}
-
-func (ws *wsClient) handleUnsubscribedEvent(bytes []byte) {
-	log.Debug().Str("message", string(bytes)).Msg("Received unsubscribed event")
-}
-
-func (ws *wsClient) handleCandleEvent(e WsEvent, bytes []byte) {
-	log.Debug().Str("message", string(bytes)).Msg("Received candles event")
-
-	for _, h := range ws.handlers {
-		if handler, ok := h.(*candlesEventHandler); ok {
-			handler.handleMessage(e, bytes)
-		}
-	}
-}
-
-func (ws *wsClient) handleTickerEvent(e WsEvent, bytes []byte) {
-	log.Debug().Str("message", string(bytes)).Msg("Received ticker event")
-
-	for _, h := range ws.handlers {
-		if handler, ok := h.(*tickerEventHandler); ok {
-			handler.handleMessage(e, bytes)
-		}
-	}
-}
-
-func (ws *wsClient) handleTicker24hEvent(e WsEvent, bytes []byte) {
-	log.Debug().Str("message", string(bytes)).Msg("Received ticker24h event")
-
-	for _, h := range ws.handlers {
-		if handler, ok := h.(*ticker24hEventHandler); ok {
-			handler.handleMessage(e, bytes)
-		}
-	}
-}
-
-func (ws *wsClient) handleTradesEvent(e WsEvent, bytes []byte) {
-	log.Debug().Str("message", string(bytes)).Msg("Received trades event")
-
-	for _, h := range ws.handlers {
-		if handler, ok := h.(*tradesEventHandler); ok {
-			handler.handleMessage(e, bytes)
-		}
-	}
-}
-
-func (ws *wsClient) handleBookEvent(e WsEvent, bytes []byte) {
-	log.Debug().Str("message", string(bytes)).Msg("Received book event")
-
-	for _, h := range ws.handlers {
-		if handler, ok := h.(*bookEventHandler); ok {
-			handler.handleMessage(e, bytes)
-		}
-	}
-}
-
-func (ws *wsClient) handleOrderEvent(e WsEvent, bytes []byte) {
-	log.Debug().Str("message", string(bytes)).Msg("Received order event")
-
-	for _, h := range ws.handlers {
-		if handler, ok := h.(*accountEventHandler); ok {
-			handler.handleMessage(e, bytes)
-		}
-	}
-}
-
-func (ws *wsClient) handleFillEvent(e WsEvent, bytes []byte) {
-	log.Debug().Str("message", string(bytes)).Msg("Received fill event")
-
-	for _, h := range ws.handlers {
-		if handler, ok := h.(*accountEventHandler); ok {
-			handler.handleMessage(e, bytes)
-		}
-	}
-}
-
-func (ws *wsClient) handleAuthEvent(e WsEvent, bytes []byte) {
-	log.Debug().Str("message", string(bytes)).Msg("Received auth event")
-
-	for _, h := range ws.handlers {
-		if handler, ok := h.(*accountEventHandler); ok {
-			handler.handleMessage(e, bytes)
+		for _, handler := range ws.handlers {
+			handler.handleMessage(e.Event, bytes)
 		}
 	}
 }
