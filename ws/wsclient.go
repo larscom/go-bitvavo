@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/larscom/go-bitvavo/v2/types"
@@ -80,7 +81,7 @@ type wsClient struct {
 	writechn       chan WebSocketMessage
 	errchn         chan<- error
 
-	// all registered event handlers
+	mu       sync.RWMutex
 	handlers []handler
 }
 
@@ -132,6 +133,9 @@ func WithWriteBuffSize(buffSize uint64) Option {
 }
 
 func (ws *wsClient) Candles() CandlesEventHandler {
+	ws.mu.Lock()
+	defer ws.mu.Unlock()
+
 	for _, h := range ws.handlers {
 		if handler, ok := h.(*candlesEventHandler); ok {
 			return handler
@@ -145,6 +149,9 @@ func (ws *wsClient) Candles() CandlesEventHandler {
 }
 
 func (ws *wsClient) Ticker() EventHandler[TickerEvent] {
+	ws.mu.Lock()
+	defer ws.mu.Unlock()
+
 	for _, h := range ws.handlers {
 		if handler, ok := h.(*tickerEventHandler); ok {
 			return handler
@@ -158,6 +165,9 @@ func (ws *wsClient) Ticker() EventHandler[TickerEvent] {
 }
 
 func (ws *wsClient) Ticker24h() EventHandler[Ticker24hEvent] {
+	ws.mu.Lock()
+	defer ws.mu.Unlock()
+
 	for _, h := range ws.handlers {
 		if handler, ok := h.(*ticker24hEventHandler); ok {
 			return handler
@@ -171,6 +181,9 @@ func (ws *wsClient) Ticker24h() EventHandler[Ticker24hEvent] {
 }
 
 func (ws *wsClient) Trades() EventHandler[TradesEvent] {
+	ws.mu.Lock()
+	defer ws.mu.Unlock()
+
 	for _, h := range ws.handlers {
 		if handler, ok := h.(*tradesEventHandler); ok {
 			return handler
@@ -184,6 +197,9 @@ func (ws *wsClient) Trades() EventHandler[TradesEvent] {
 }
 
 func (ws *wsClient) Book() EventHandler[BookEvent] {
+	ws.mu.Lock()
+	defer ws.mu.Unlock()
+
 	for _, h := range ws.handlers {
 		if handler, ok := h.(*bookEventHandler); ok {
 			return handler
@@ -197,6 +213,9 @@ func (ws *wsClient) Book() EventHandler[BookEvent] {
 }
 
 func (ws *wsClient) Account(apiKey string, apiSecret string) AccountEventHandler {
+	ws.mu.Lock()
+	defer ws.mu.Unlock()
+
 	for _, h := range ws.handlers {
 		if handler, ok := h.(*accountEventHandler); ok {
 			return handler
@@ -213,7 +232,9 @@ func (ws *wsClient) Close() error {
 	defer close(ws.writechn)
 
 	for _, handler := range ws.handlers {
-		handler.UnsubscribeAll()
+		if err := handler.UnsubscribeAll(); err != nil {
+			return err
+		}
 	}
 
 	if ws.hasErrorChannel() {
