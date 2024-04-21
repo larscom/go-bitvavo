@@ -145,7 +145,7 @@ func (a *accountEventHandler) Subscribe(markets []string, buffSize ...uint64) (<
 		return nil, nil, err
 	}
 
-	if err := a.withAuth(func() {
+	if err := a.runWithAuth(func() {
 		a.writechn <- newWebSocketMessage(actionSubscribe, channelNameAccount, markets)
 	}); err != nil {
 		return nil, nil, err
@@ -179,7 +179,7 @@ func (a *accountEventHandler) Unsubscribe(markets []string) error {
 		return err
 	}
 
-	if err := a.withAuth(func() {
+	if err := a.runWithAuth(func() {
 		a.writechn <- newWebSocketMessage(actionUnsubscribe, channelNameAccount, markets)
 	}); err != nil {
 		return err
@@ -265,24 +265,28 @@ func newWebSocketAuthMessage(apiKey string, apiSecret string) WebSocketMessage {
 	}
 }
 
-func (a *accountEventHandler) authenticate() {
-	a.writechn <- newWebSocketAuthMessage(a.apiKey, a.apiSecret)
-	a.authenticated = <-a.authchn
-}
-
 func (a *accountEventHandler) reconnect() {
 	a.authenticated = false
 
-	if err := a.withAuth(func() {
+	if err := a.runWithAuth(func() {
 		a.writechn <- newWebSocketMessage(actionSubscribe, channelNameAccount, getSubscriptionKeys(a.subs))
 	}); err != nil {
-		log.Err(err).Msg("Failed to reconnect the account websocket")
+		log.Err(err).Msg("Failed to reconnect with the account handler")
 	}
 }
 
-func (a *accountEventHandler) withAuth(action func()) error {
+// runWithAuth sends an authentication message to the websocket
+// and waits for authentication message on the auth channel, this is a blocking operation.
+// Authentication messages received from the websocket are handled by the handleAuthMessage func
+// that will eventually send an authentication message to the auth channel.
+func (a *accountEventHandler) runWithAuth(action func()) error {
 	if !a.authenticated {
-		a.authenticate()
+		a.writechn <- newWebSocketAuthMessage(a.apiKey, a.apiSecret)
+		select {
+		case a.authenticated = <-a.authchn:
+		case <-time.After(10 * time.Second):
+			a.authenticated = false
+		}
 	}
 
 	if a.authenticated {
